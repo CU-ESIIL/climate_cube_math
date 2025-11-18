@@ -63,12 +63,39 @@ cube = cd.load_gridmet_cube(
 )
 ```
 
-## Sentinel-2 → NDVI anomaly (z-score) cube
+## Sentinel-2 cubes
 
 Remote-sensing chips stream into the same pipe + verbs grammar, so you can
-combine vegetation signals with climate anomalies. Use
-`cd.load_sentinel2_ndvi_cube` (requires the `cubo` package) for a one-function
-workflow:
+combine vegetation signals with climate anomalies. All Sentinel helpers require
+the `cubo` package.
+
+### All or selected bands
+
+```python
+import cubedynamics as cd
+
+s2_all = cd.load_sentinel2_cube(
+    lat=40.0,
+    lon=-105.25,
+    start="2018-01-01",
+    end="2018-12-31",
+)
+
+s2_rgbn = cd.load_sentinel2_bands_cube(
+    lat=40.0,
+    lon=-105.25,
+    start="2018-01-01",
+    end="2018-12-31",
+    bands=["B02", "B03", "B04", "B08"],
+)
+```
+
+`load_sentinel2_cube` streams all bands (or a user-provided subset), returning a
+`(time, y, x, band)` cube with consistent dimension order. The companion
+`load_sentinel2_bands_cube` helper enforces that the band subset is explicitly
+provided and raises ``ValueError`` when the list is empty.
+
+### NDVI anomaly (z-score) cube
 
 ```python
 import cubedynamics as cd
@@ -84,12 +111,12 @@ ndvi_z = cd.load_sentinel2_ndvi_cube(
 pipe(ndvi_z) | v.show_cube_lexcube(title="Sentinel-2 NDVI z-score")
 ```
 
-The helper streams Sentinel-2 Level-2A imagery via `cubo`, computes NDVI from
-bands B08 (NIR) and B04 (red), and runs `v.zscore(dim="time")` so the returned
-cube is standardized across time. Set ``return_raw=True`` to also grab the raw
-reflectance stack and intermediate NDVI cube. You can still manually reproduce
-the pipeline with `pipe(...) | v.ndvi_from_s2(...) | v.zscore(...)` if you need a
-different stacking order.
+`load_sentinel2_ndvi_cube` builds on the band loader to fetch B04/B08, computes
+NDVI, and runs `v.zscore(dim="time")` so the returned cube is standardized over
+time. Set ``return_raw=True`` to also grab the raw reflectance stack and
+intermediate NDVI cube. You can still manually reproduce the pipeline with
+`pipe(...) | v.ndvi_from_s2(...) | v.zscore(...)` if you need a different
+stacking order.
 
 The resulting cube highlights unusual greenness events (drought stress,
 disturbance, rapid recovery). Because every cube shares `(time, y, x)` axes, you
