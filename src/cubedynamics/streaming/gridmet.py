@@ -1,0 +1,127 @@
+from __future__ import annotations
+
+from typing import Dict, Optional
+import io
+import requests
+import xarray as xr
+
+GRIDMET_BASE_URL = "https://www.northwestknowledge.net/metdata/data"
+
+
+def _bbox_from_geojson(aoi_geojson: Dict) -> Dict[str, float]:
+    """
+    Compute a simple lat/lon bounding box from a GeoJSON polygon (EPSG:4326).
+    Assumes geometry["type"] == "Polygon" and uses the outer ring.
+    """
+    geom = aoi_geojson.get("geometry", aoi_geojson)
+    coords = geom["coordinates"][0]
+    lons = [c[0] for c in coords]
+    lats = [c[1] for c in coords]
+    return {
+        "south": float(min(lats)),
+        "north": float(max(lats)),
+        "west": float(min(lons)),
+        "east": float(max(lons)),
+    }
+
+
+def _open_gridmet_year(
+    variable: str,
+    year: int,
+    chunks: Optional[Dict[str, int]] = None,
+) -> xr.Dataset:
+    """
+    Download a single gridMET year to memory and open it with h5netcdf.
+
+    This follows the validated pattern:
+    requests.get(..., stream=True) → BytesIO → xr.open_dataset(engine="h5netcdf")
+    """
+    url = f"{GRIDMET_BASE_URL}/{variable}_{year}.nc"
+
+    resp = requests.get(url, stream=True, timeout=120)
+    resp.raise_for_status()
+
+    buf = io.BytesIO()
+    for chunk in resp.iter_content(chunk_size=1024 * 1024):  # 1 MB chunks
+        if not chunk:
+            break
+        buf.write(chunk)
+    buf.seek(0)
+
+    ds = xr.open_dataset(
+        buf,
+        engine="h5netcdf",
+        decode_times=True,
+        chunks=chunks,
+    )
+
+    # gridMET uses "day" as the time dimension; normalize to "time"
+    if "day" in ds.dims:
+        ds = ds.rename({"day": "time"})
+    if "day" in ds.coords:
+        ds = ds.rename({"day": "time"})
+
+    return ds
+
+
+def stream_gridmet_to_cube(
+    aoi_geojson: Dict,
+    variable: str,
+    start: str,
+    end: str,
+    freq: str = "D",
+    chunks: Optional[Dict[str, int]] = None,
+) -> xr.DataArray:
+    """
+    Stream a gridMET subset as an xarray.DataArray "cube" for a given AOI.
+
+    Parameters
+    ----------
+    aoi_geojson
+        GeoJSON Feature or geometry in EPSG:4326.
+    variable
+        gridMET variable name, e.g. "pr", "tmmx", "tmmn", "vs", "erc", etc.
+    start, end
+        Time range in ISO format, e.g. "2000-01-01".
+    freq
+        Output time frequency. "D" for daily; "MS" for monthly start, etc.
+    chunks
+        Optional dask-style chunk mapping, e.g. {"time": 365}.
+
+    Returns
+    -------
+    xr.DataArray
+        A cube with dims (time, lat, lon), already cropped to the AOI and
+        resampled to the requested frequency.
+    """
+    # Parse years from the date strings
+    start_year = int(start[:4])
+    end_year = int(end[:4])
+
+    # 1) Load all needed years into a list of Datasets
+    year_chunks = chunks or {"time": 366}
+    ds_list = []
+    for year in range(start_year, end_year + 1):
+        ds_y = _open_gridmet_year(variable, year, chunks=year_chunks)
+        ds_list.append(ds_y)
+
+    # 2) Concatenate along the normalized time axis and clip to [start, end]
+    ds = xr.concat(ds_list, dim="time")
+    ds = ds.sel(time=slice(start, end))
+
+    # 3) Spatial subset using the AOI bbox
+    bbox = _bbox_from_geojson(aoi_geojson)
+    da = ds[variable].sel(
+        lat=slice(bbox["south"], bbox["north"]),
+        lon=slice(bbox["west"], bbox["east"]),
+    )
+
+    # 4) Optional resampling in time (e.g., to monthly)
+    if freq != "D":
+        da = da.resample(time=freq).mean()
+
+    da.name = variable
+    return da
+
+
+__all__ = ["stream_gridmet_to_cube"]

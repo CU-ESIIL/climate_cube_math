@@ -30,7 +30,7 @@ from .viz.lexcube_viz import show_cube_lexcube
 from .viz.qa_plots import plot_median_over_space
 
 # Streaming-first stubs for the new architecture ---------------------------------
-from .gridmet_streaming import stream_gridmet_to_cube
+from .streaming.gridmet import stream_gridmet_to_cube
 from .prism_streaming import stream_prism_to_cube
 from .correlation_cubes import correlation_cube as streaming_correlation_cube
 from .ops import (
