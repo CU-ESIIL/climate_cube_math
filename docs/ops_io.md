@@ -1,6 +1,6 @@
 # Operations Reference – IO Functions
 
-IO verbs move cubes to disk or other systems without breaking the pipe chain. They live in `cubedynamics.ops.io`. Examples assume `import cubedynamics as cd` and a `cube` variable referencing an `xarray` object.
+IO verbs move cubes to disk or other systems without breaking the pipe chain. They live in `cubedynamics.ops.io` and are re-exported via `cubedynamics.verbs`. Examples assume `from cubedynamics import pipe, verbs as v` and a `cube` variable referencing an `xarray` object.
 
 ## `to_netcdf(path)`
 
@@ -8,9 +8,9 @@ Writes the upstream cube to a NetCDF file.
 
 ```python
 (
-    cd.pipe(cube)
-    | cd.anomaly(dim="time")
-    | cd.to_netcdf("out.nc")
+    pipe(cube)
+    | v.anomaly(dim="time")
+    | v.to_netcdf("out.nc")
 ).unwrap()
 ```
 

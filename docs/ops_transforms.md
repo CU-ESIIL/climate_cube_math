@@ -1,6 +1,6 @@
 # Operations Reference – Transforms
 
-Transform verbs reshape or filter cubes before you compute downstream statistics. All functions live under `cubedynamics.ops.transforms` but are re-exported at the package root. Examples assume `import cubedynamics as cd` and a `cube` variable that is an `xarray` object.
+Transform verbs reshape or filter cubes before you compute downstream statistics. All functions live under `cubedynamics.ops.transforms` and are re-exported via `cubedynamics.verbs`. Examples assume `from cubedynamics import pipe, verbs as v` and a `cube` variable that is an `xarray` object.
 
 ## `anomaly(dim)`
 
@@ -8,8 +8,8 @@ Computes anomalies by subtracting the mean along a dimension.
 
 ```python
 result = (
-    cd.pipe(cube)
-    | cd.anomaly(dim="time")
+    pipe(cube)
+    | v.anomaly(dim="time")
 ).unwrap()
 ```
 
@@ -23,9 +23,9 @@ Filters a cube to the specified month numbers (1–12). Useful for seasonal comp
 
 ```python
 result = (
-    cd.pipe(cube)
-    | cd.month_filter([6, 7, 8])
-    | cd.anomaly(dim="time")
+    pipe(cube)
+    | v.month_filter([6, 7, 8])
+    | v.anomaly(dim="time")
 ).unwrap()
 ```
 

@@ -29,12 +29,12 @@ z-score cube highlights anomalies rather than absolute greenness.
 
 ## Mapping to `cubedynamics`
 
-The package provides two key helpers:
+The package provides two key helpers exposed via the verbs namespace:
 
-- `cubedynamics.indices.vegetation.compute_ndvi_from_s2` turns Sentinel-2
-  Level-2A surface reflectance cubes into NDVI cubes.
-- `cubedynamics.stats.anomalies.zscore_over_time` standardizes each pixel
-  along the time dimension.
+- `cubedynamics.verbs.ndvi_from_s2` turns Sentinel-2 Level-2A surface
+  reflectance cubes into NDVI cubes.
+- `cubedynamics.verbs.zscore` standardizes each pixel along the time
+  dimension (or any other axis you select).
 
 Together they produce the NDVI z-score cubes that downstream statistics and
 visualizations consume.
@@ -43,8 +43,7 @@ visualizations consume.
 
 ```python
 from cubedynamics.data.sentinel2 import load_s2_cube
-from cubedynamics.indices.vegetation import compute_ndvi_from_s2
-from cubedynamics.stats.anomalies import zscore_over_time
+from cubedynamics import pipe, verbs as v
 
 s2 = load_s2_cube(
     lat=43.89,
@@ -54,6 +53,9 @@ s2 = load_s2_cube(
     edge_size=256,
 )
 
-ndvi = compute_ndvi_from_s2(s2)
-ndvi_z = zscore_over_time(ndvi)
+ndvi_z = (
+    pipe(s2)
+    | v.ndvi_from_s2()
+    | v.zscore(dim="time")
+).unwrap()
 ```

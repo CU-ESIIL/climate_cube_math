@@ -5,8 +5,8 @@ from __future__ import annotations
 import pytest
 import xarray as xr
 
+from cubedynamics import pipe, verbs as v
 from cubedynamics.indices.vegetation import compute_ndvi_from_s2
-from cubedynamics.stats.anomalies import zscore_over_time
 
 pytestmark = pytest.mark.online
 
@@ -50,7 +50,11 @@ def test_s2_ndvi_zscore_pipeline_smoke() -> None:
         cloud_lt=80,
     )
     ndvi = compute_ndvi_from_s2(s2)
-    ndvi_z = zscore_over_time(ndvi)
+    ndvi_z = (
+        pipe(s2)
+        | v.ndvi_from_s2()
+        | v.zscore(dim="time")
+    ).unwrap()
 
     assert ndvi_z.ndim == 3
     assert ndvi_z.dims == ("time", "y", "x")

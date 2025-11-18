@@ -57,8 +57,8 @@ cube = cubedynamics.stream_gridmet_to_cube(
 
 Sentinel-2 reflectance cubes feed vegetation indices and QA workflows.
 `stream_sentinel2_to_cube` requests chips from providers such as Cubo or the
-Planetary Computer, then `cubedynamics.indices.vegetation.compute_ndvi_from_s2`
-transforms them into NDVI cubes for downstream cube math.
+Planetary Computer, then the `cubedynamics.verbs.ndvi_from_s2` verb transforms
+them into NDVI cubes for downstream cube math.
 
 ## Custom sources
 

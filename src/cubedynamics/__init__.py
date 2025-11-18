@@ -9,6 +9,7 @@ Core goals
 
 from .version import __version__
 from .piping import Pipe, pipe
+from . import verbs
 
 # Legacy, fully implemented APIs -------------------------------------------------
 from .data.gridmet import load_gridmet_cube
@@ -32,7 +33,15 @@ from .viz.qa_plots import plot_median_over_space
 from .gridmet_streaming import stream_gridmet_to_cube
 from .prism_streaming import stream_prism_to_cube
 from .correlation_cubes import correlation_cube as streaming_correlation_cube
-from .ops import anomaly, month_filter, variance, correlation_cube, to_netcdf
+from .ops import (
+    anomaly,
+    month_filter,
+    variance,
+    correlation_cube,
+    to_netcdf,
+    zscore,
+    ndvi_from_s2,
+)
 
 __all__ = [
     "__version__",
@@ -58,10 +67,13 @@ __all__ = [
     "stream_prism_to_cube",
     "Pipe",
     "pipe",
+    "verbs",
     "anomaly",
     "month_filter",
     "variance",
     "correlation_cube",
     "to_netcdf",
+    "zscore",
+    "ndvi_from_s2",
     "streaming_correlation_cube",
 ]

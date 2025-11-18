@@ -27,7 +27,7 @@ The rest of the documentation walks through the primary layers of the
 
 1. **Data layer** – load space-time cubes (`load_s2_cube`).
 2. **Indices & anomalies layer** – derive vegetation indices and z-scores
-   (`compute_ndvi_from_s2`, `zscore_over_time`).
+   (`from cubedynamics import verbs as v`; `v.ndvi_from_s2`, `v.zscore`).
 3. **Synchrony layer** – measure rolling correlation and tail dependence versus
    a reference pixel (`rolling_corr_vs_center`, `rolling_tail_dep_vs_center`).
 4. **Visualization layer** – explore cubes interactively with the Lexcube

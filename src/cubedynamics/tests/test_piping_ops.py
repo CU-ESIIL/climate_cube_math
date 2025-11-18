@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 
-import cubedynamics as cd
+from cubedynamics import pipe, verbs as v
 
 
 def _make_time_series(count: int = 12):
@@ -22,7 +22,7 @@ def _make_time_series(count: int = 12):
 def test_pipe_basic_chain():
     da = _make_time_series()
 
-    result = (cd.pipe(da) | cd.anomaly(dim="time") | cd.variance(dim="time")).unwrap()
+    result = (pipe(da) | v.anomaly(dim="time") | v.variance(dim="time")).unwrap()
 
     assert isinstance(result, xr.DataArray)
     assert result.dims == ()
@@ -32,7 +32,7 @@ def test_pipe_basic_chain():
 def test_month_filter_reduces_time():
     da = _make_time_series(24)
 
-    summer = (cd.pipe(da) | cd.month_filter([6, 7, 8])).unwrap()
+    summer = (pipe(da) | v.month_filter([6, 7, 8])).unwrap()
 
     assert set(int(m) for m in summer["time"].dt.month.values) == {6, 7, 8}
 
@@ -41,7 +41,7 @@ def test_to_netcdf_roundtrip(tmp_path):
     da = _make_time_series()
     path = tmp_path / "out.nc"
 
-    result = (cd.pipe(da) | cd.to_netcdf(path)).unwrap()
+    result = (pipe(da) | v.to_netcdf(path)).unwrap()
 
     assert path.exists()
     loaded = xr.load_dataarray(path)

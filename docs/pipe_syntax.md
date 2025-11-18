@@ -5,20 +5,22 @@ CubeDynamics exposes a lightweight `Pipe` object so `xarray` workflows read like
 ## The Pipe object
 
 ```python
-import cubedynamics as cd
+from cubedynamics import pipe
 
-pipe_obj = cd.pipe(cube)
+pipe_obj = pipe(cube)
 ```
 
-`cd.pipe(value)` wraps any `xarray.DataArray` or `xarray.Dataset` without altering it. Use the `|` operator to apply verbs, then call `.unwrap()` to retrieve the final object.
+`pipe(value)` wraps any `xarray.DataArray` or `xarray.Dataset` without altering it. Use the `|` operator to apply verbs, then call `.unwrap()` to retrieve the final object.
 
 ## Chaining verbs
 
 ```python
+from cubedynamics import pipe, verbs as v
+
 result = (
-    cd.pipe(cube)
-    | cd.anomaly(dim="time")
-    | cd.variance(dim="time")
+    pipe(cube)
+    | v.anomaly(dim="time")
+    | v.variance(dim="time")
 ).unwrap()
 ```
 
@@ -33,12 +35,12 @@ All examples below use in-memory data so you can run them in any notebook.
 ```python
 import numpy as np
 import xarray as xr
-import cubedynamics as cd
+from cubedynamics import pipe, verbs as v
 
 time = np.arange(4)
 cube = xr.DataArray([1.0, 2.0, 3.0, 4.0], dims=["time"], coords={"time": time})
 
-anoms = (cd.pipe(cube) | cd.anomaly(dim="time")).unwrap()
+anoms = (pipe(cube) | v.anomaly(dim="time")).unwrap()
 ```
 
 `anomaly` subtracts the mean along the dimension you specify.
@@ -49,14 +51,14 @@ anoms = (cd.pipe(cube) | cd.anomaly(dim="time")).unwrap()
 import numpy as np
 import pandas as pd
 import xarray as xr
-import cubedynamics as cd
+from cubedynamics import pipe, verbs as v
 
 time = pd.date_range("2000-01-01", periods=12, freq="MS")
 values = np.arange(12)
 
 cube = xr.DataArray(values, dims=["time"], coords={"time": time})
 
-summer = (cd.pipe(cube) | cd.month_filter([6, 7, 8])).unwrap()
+summer = (pipe(cube) | v.month_filter([6, 7, 8])).unwrap()
 ```
 
 `month_filter` keeps only the months you list (in numeric form) based on the `time` coordinate.
@@ -64,7 +66,9 @@ summer = (cd.pipe(cube) | cd.month_filter([6, 7, 8])).unwrap()
 ### `variance(dim="time")`
 
 ```python
-var = (cd.pipe(cube) | cd.variance(dim="time")).unwrap()
+from cubedynamics import pipe, verbs as v
+
+var = (pipe(cube) | v.variance(dim="time")).unwrap()
 ```
 
 `variance` runs `xarray.var` under the hood, so any axis can be supplied.
@@ -73,9 +77,10 @@ var = (cd.pipe(cube) | cd.variance(dim="time")).unwrap()
 
 ```python
 from pathlib import Path
+from cubedynamics import pipe, verbs as v
 
 path = Path("example.nc")
-(cd.pipe(cube) | cd.to_netcdf(path)).unwrap()
+(pipe(cube) | v.to_netcdf(path)).unwrap()
 ```
 
 `to_netcdf` writes the incoming cube to disk (returning the original object so the pipe can continue). When running docs examples you can point to a temporary directory such as `/tmp/example.nc`.
@@ -83,11 +88,14 @@ path = Path("example.nc")
 ### `correlation_cube(other, dim="time")`
 
 ```python
+import xarray as xr
+from cubedynamics import pipe, verbs as v
+
 other = xr.DataArray([0.5, 1.5, 2.5, 3.5], dims=["time"], coords={"time": time})
 
 corr = (
-    cd.pipe(cube)
-    | cd.correlation_cube(other, dim="time")
+    pipe(cube)
+    | v.correlation_cube(other, dim="time")
 ).unwrap()
 ```
 
@@ -99,6 +107,7 @@ Assuming `boulder_aoi` is defined as in the getting started example, you can str
 
 ```python
 import cubedynamics as cd
+from cubedynamics import pipe, verbs as v
 
 cube = cd.stream_gridmet_to_cube(
     aoi_geojson=boulder_aoi,
@@ -110,9 +119,9 @@ cube = cd.stream_gridmet_to_cube(
 )
 
 jja_var = (
-    cd.pipe(cube)
-    | cd.month_filter([6, 7, 8])
-    | cd.variance(dim="time")
+    pipe(cube)
+    | v.month_filter([6, 7, 8])
+    | v.variance(dim="time")
 ).unwrap()
 ```
 
@@ -134,7 +143,9 @@ def my_custom_op(param):
         return da
     return _inner
 
-result = (cd.pipe(cube) | my_custom_op(param=42)).unwrap()
+from cubedynamics import pipe
+
+result = (pipe(cube) | my_custom_op(param=42)).unwrap()
 ```
 
 Register your verb in your own module or import it in your notebook, then use it alongside the built-in operations.

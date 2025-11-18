@@ -1,6 +1,6 @@
 # Operations Reference – Stats
 
-Statistic verbs summarize cubes along dimensions or compare axes. They live in `cubedynamics.ops.stats` and are available directly via `cubedynamics`. Examples assume `import cubedynamics as cd` and a `cube` variable bound to an `xarray` object.
+Statistic verbs summarize cubes along dimensions or compare axes. They live in `cubedynamics.ops.stats` and are re-exported via `cubedynamics.verbs`. Examples assume `from cubedynamics import pipe, verbs as v` and a `cube` variable bound to an `xarray` object.
 
 ## `variance(dim)`
 
@@ -8,10 +8,26 @@ Computes the variance along a dimension.
 
 ```python
 result = (
-    cd.pipe(cube)
-    | cd.variance(dim="time")
+    pipe(cube)
+    | v.variance(dim="time")
 ).unwrap()
 ```
+
+## `zscore(dim="time", std_eps=1e-4)`
+
+Standardizes each pixel/voxel along a dimension by subtracting the mean and dividing by the standard deviation.
+
+```python
+result = (
+    pipe(cube)
+    | v.zscore(dim="time")
+).unwrap()
+```
+
+- **Parameters**
+  - `dim`: dimension to standardize along.
+  - `std_eps`: mask threshold to avoid dividing by values with near-zero spread.
+- **Returns**: anomaly cube whose values are unitless z-scores per pixel.
 
 - **Parameters**
   - `dim`: dimension to collapse.
@@ -23,8 +39,8 @@ A forthcoming verb for building correlation matrices/surfaces between variables,
 
 ```python
 result = (
-    cd.pipe(cube)
-    | cd.correlation_cube(target="ndvi", reference="pr")
+    pipe(cube)
+    | v.correlation_cube(target="ndvi", reference="pr")
 ).unwrap()
 ```
 
