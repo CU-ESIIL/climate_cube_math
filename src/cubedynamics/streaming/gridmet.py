@@ -7,7 +7,20 @@ import xarray as xr
 from xarray.backends.plugins import list_engines
 
 GRIDMET_BASE_URL = "https://www.northwestknowledge.net/metdata/data"
-H5NETCDF_AVAILABLE = "h5netcdf" in list_engines()
+_ENGINE_PREFERENCE = ("h5netcdf", "netcdf4", "scipy")
+_AVAILABLE_ENGINES = list_engines()
+
+
+def _select_stream_engine() -> Optional[str]:
+    """Pick the best available xarray engine for streaming gridMET files."""
+
+    for engine in _ENGINE_PREFERENCE:
+        if engine in _AVAILABLE_ENGINES:
+            return engine
+    return None
+
+
+_STREAM_ENGINE = _select_stream_engine()
 
 
 def _bbox_from_geojson(aoi_geojson: Dict) -> Dict[str, float]:
@@ -54,8 +67,8 @@ def _open_gridmet_year(
         "decode_times": True,
         "chunks": chunks,
     }
-    if H5NETCDF_AVAILABLE:
-        open_kwargs["engine"] = "h5netcdf"
+    if _STREAM_ENGINE is not None:
+        open_kwargs["engine"] = _STREAM_ENGINE
 
     ds = xr.open_dataset(buf, **open_kwargs)
 
