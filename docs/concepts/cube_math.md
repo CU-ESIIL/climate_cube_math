@@ -1,41 +1,108 @@
 # Climate cube math primitives
 
 The `climate_cube_math` package collects reusable *cube math* primitives that
-operate directly on `xarray` objects without breaking their labeled dimensions.
-These primitives fall into three categories.
+operate directly on `xarray` DataArrays without breaking their labeled
+dimensions. These primitives fall into two main groups: temporal operators and
+spatial operators.
 
-## Temporal operations
+## Temporal operators
 
-- **Z-scores & anomalies** – `stats.anomalies.zscore_over_time` and related
-  helpers standardize or demean each pixel.
-- **Rolling reductions** – `stats.rolling` defines moving-window statistics that
-  are later specialized by the correlation/tail modules.
-- **Lag/lead transforms** – differencing, smoothing, and other future helpers can
-  be layered on time-centered cubes to highlight rate-of-change or persistence.
+Temporal functions act along the time axis (default name `time`). They share a
+common design: respect existing coordinates, work lazily with Dask arrays, and
+return cubes whose metadata explains the transformation.
 
-## Spatial operations
+### `temporal_anomaly`
 
-- **Coarsening & striding** – `utils.chunking.coarsen_and_stride` reduces spatial
-  resolution and sub-samples time for performance.
-- **Masks & neighborhoods** – boolean masks (e.g., from QA bands or external
-  polygons) can gate where calculations run. Neighborhood operations such as
-  smoothing or gradients preserve the `y`/`x` axes while aggregating across
-  nearby pixels.
+Compute departures from a baseline mean along a time-like dimension. By default
+it uses the entire time span, but you can also pass a slice for a specific
+baseline period.
 
-## Metadata conventions
+```python
+from climate_cube_math.stats.anomalies import temporal_anomaly
 
-All primitives expect the standard `(time, y, x)` dimension order (with optional
-band/variable axis). Coordinates should be named `time`, `y`, `x`, and any extra
-bands should be labeled via the `band` or `variable` dimension. Attributes are
-carried through operations so that downstream plots know the data source,
-projection, or scaling applied.
+anoms = temporal_anomaly(ndvi_z, dim="time")
+seasonal_anoms = temporal_anomaly(
+    ndvi_z,
+    dim="time",
+    baseline_slice=slice("2018-01-01", "2019-12-31"),
+)
+```
+
+### `temporal_difference`
+
+Take lagged differences, e.g., month-over-month change. NaNs are inserted for
+the first `lag` entries automatically via `xarray.shift`.
+
+```python
+from climate_cube_math.stats.anomalies import temporal_difference
+
+diffs = temporal_difference(temp_cube, lag=1, dim="time")
+annual_diffs = temporal_difference(temp_cube, lag=12, dim="time")
+```
+
+### `rolling_mean`
+
+A thin wrapper over `xarray.DataArray.rolling(...).mean()` that defaults to
+`min_periods=window` and preserves long-name metadata.
+
+```python
+from climate_cube_math.stats.anomalies import rolling_mean
+
+smooth = rolling_mean(diffs, window=3, dim="time")
+```
+
+### `zscore_over_time`
+
+Standardize each pixel over time by subtracting its mean and dividing by its
+standard deviation, with `STD_EPS` guarding against division by near-zero.
+
+## Spatial operators
+
+Spatial functions assume `y`/`x` axes (overridable via arguments). They never
+collapse time or variable dimensions, so the output stays compatible with other
+cube math utilities.
+
+### `spatial_coarsen_mean`
+
+Aggregate over non-overlapping blocks of size `factor_y` × `factor_x` with
+`boundary="trim"` so partial tiles are dropped.
+
+```python
+from climate_cube_math.stats.spatial import spatial_coarsen_mean
+
+# Coarsen from 1 km to 4 km resolution by averaging 4×4 neighborhoods
+coarse = spatial_coarsen_mean(temp_cube, factor_y=4, factor_x=4)
+```
+
+### `spatial_smooth_mean`
+
+Apply a centered rolling mean (boxcar) kernel over both spatial axes. The
+`kernel_size` must be an odd integer.
+
+```python
+from climate_cube_math.stats.spatial import spatial_smooth_mean
+
+smooth_map = spatial_smooth_mean(temp_cube.isel(time=0), kernel_size=3)
+```
+
+### `mask_by_threshold`
+
+Create boolean masks for threshold-based filtering. The mask carries through the
+input metadata and can be used with `xr.where` or `.where()`.
+
+```python
+from climate_cube_math.stats.spatial import mask_by_threshold
+
+# Keep only pixels warmer than 20 °C
+warm_mask = mask_by_threshold(temp_cube, threshold=20.0, direction=">")
+```
 
 ## Putting it together
 
 By composing these primitives we can:
 
 1. Load a cube.
-2. Apply temporal standardization (z-scores).
+2. Apply temporal standardization (z-scores or anomalies).
 3. Reduce spatial resolution or mask invalid data.
 4. Derive rolling synchrony metrics.
 5. Visualize the resulting cubes via Lexcube and QA plots.
