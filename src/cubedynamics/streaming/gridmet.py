@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import io
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Sequence
 
+import numpy as np
 import requests
 import xarray as xr
 from xarray.backends.plugins import list_engines
@@ -10,6 +11,53 @@ from xarray.backends.plugins import list_engines
 GRIDMET_BASE_URL = "https://www.northwestknowledge.net/metdata/data"
 _ENGINE_PREFERENCE = ("h5netcdf", "netcdf4", "scipy")
 _AVAILABLE_ENGINES = list_engines()
+
+
+def _axis_slice(coord: Sequence[float], bound_a: float, bound_b: float) -> slice:
+    """
+    Return a slice that spans ``[bound_a, bound_b]`` regardless of axis order.
+
+    gridMET tiles have a resolution of roughly 1/24th of a degree. When an AOI
+    bounding box is smaller than that resolution, its numeric bounds can fall
+    entirely between adjacent coordinate centers. To avoid empty selections we
+    expand the slice bounds by half the native grid spacing before subsetting.
+    """
+
+    values = np.asarray(coord, dtype=float)
+    if values.size == 0:
+        val = float(min(bound_a, bound_b))
+        return slice(val, val)
+
+    lo = float(min(bound_a, bound_b))
+    hi = float(max(bound_a, bound_b))
+
+    if values.size > 1:
+        diffs = np.diff(values)
+        diffs = diffs[np.nonzero(diffs)]
+        if diffs.size:
+            spacing = float(np.min(np.abs(diffs)))
+            span = hi - lo
+            if spacing > 0 and span < spacing:
+                padding = (spacing - span) / 2.0
+                lo -= padding
+                hi += padding
+
+    descending = values[0] > values[-1]
+    if descending:
+        return slice(hi, lo)
+    return slice(lo, hi)
+
+
+def _lat_slice(lat_coord: Sequence[float], south: float, north: float) -> slice:
+    """Return a latitude slice that works for ascending or descending axes."""
+
+    return _axis_slice(lat_coord, south, north)
+
+
+def _lon_slice(lon_coord: Sequence[float], west: float, east: float) -> slice:
+    """Return a longitude slice that works for ascending or descending axes."""
+
+    return _axis_slice(lon_coord, west, east)
 
 
 def _select_stream_engine() -> Optional[str]:
@@ -162,10 +210,26 @@ def stream_gridmet_to_cube(
 
     # 3) Spatial subset using the AOI bbox
     bbox = _bbox_from_geojson(aoi_geojson)
-    da = ds[variable].sel(
-        lat=slice(bbox["south"], bbox["north"]),
-        lon=slice(bbox["west"], bbox["east"]),
-    )
+    lat_coord = ds.coords.get("lat")
+    if lat_coord is None:
+        raise KeyError("gridMET dataset is missing the 'lat' coordinate")
+    lon_coord = ds.coords.get("lon")
+    if lon_coord is None:
+        raise KeyError("gridMET dataset is missing the 'lon' coordinate")
+
+    lat_slice = _lat_slice(lat_coord, bbox["south"], bbox["north"])
+    lon_slice = _lon_slice(lon_coord, bbox["west"], bbox["east"])
+    da = ds[variable].sel(lat=lat_slice, lon=lon_slice)
+
+    empty_dims = [dim for dim in ("lat", "lon") if da.sizes.get(dim, 0) == 0]
+    if empty_dims:
+        raise ValueError(
+            "gridMET subset is empty along "
+            + ", ".join(f"'{dim}'" for dim in empty_dims)
+            + ". "
+            f"Requested south={bbox['south']}, north={bbox['north']}, "
+            f"west={bbox['west']}, east={bbox['east']}"
+        )
 
     # 4) Optional resampling in time (e.g., to monthly)
     if freq != "D":
