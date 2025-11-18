@@ -20,6 +20,11 @@ def zscore_over_time(
     std = da.std(dim=dim, skipna=True)
     valid_std = std > eps
     z = xr.where(valid_std, (da - mean) / std, np.nan)
+    # Keep the original dimension ordering so callers don't have to
+    # defensively transpose results. xarray broadcasting can sometimes
+    # reorder axes depending on the order of intermediate operations,
+    # so normalize here explicitly.
+    z = z.transpose(*da.dims)
     z = z.astype("float32")
     z.name = f"{da.name}_z" if da.name else "zscore"
     z.attrs = {
