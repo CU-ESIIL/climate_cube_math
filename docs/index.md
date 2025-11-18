@@ -5,8 +5,8 @@ Streaming-first climate cube math with ggplot-style piping.
 ## Why CubeDynamics?
 
 - **Streaming climate cubes** assembled from PRISM, gridMET, NDVI, and other archives without local mirroring.
-- **Pipe-based math** so you can write `cd.pipe(cube) | cd.anomaly() | cd.variance()` and get reproducible workflows.
-- **Focused verbs under `cubedynamics.ops`** covering transforms, stats, and IO helpers for on-disk storage.
+- **Pipe-based math** so you can write `pipe(cube) | v.anomaly() | v.variance()` and get reproducible workflows.
+- **Focused verbs under `cubedynamics.verbs`** covering transforms, stats, and IO helpers for on-disk storage.
 
 ## Quickstart in a Jupyter notebook
 
@@ -24,7 +24,7 @@ Open a fresh notebook, install CubeDynamics from GitHub, and run the following:
    import numpy as np
    import pandas as pd
    import xarray as xr
-   import cubedynamics as cd
+   from cubedynamics import pipe, verbs as v
 
    # Build a 12-month time series with a datetime coordinate
    time = pd.date_range("2000-01-01", periods=12, freq="MS")
@@ -38,10 +38,10 @@ Open a fresh notebook, install CubeDynamics from GitHub, and run the following:
    )
 
    result = (
-       cd.pipe(cube)
-       | cd.anomaly(dim="time")
-       | cd.month_filter([6, 7, 8])
-       | cd.variance(dim="time")
+       pipe(cube)
+       | v.anomaly(dim="time")
+       | v.month_filter([6, 7, 8])
+       | v.variance(dim="time")
    ).unwrap()
 
    print("Variance of anomalies over JJA:", float(result.values))

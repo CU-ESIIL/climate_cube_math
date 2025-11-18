@@ -30,11 +30,10 @@ The loader harmonizes CRS, attaches metadata, and returns a lazily-evaluated
 Once a cube exists, run statistics directly on the labeled dimensions:
 
 ```python
-from cubedynamics.stats.anomalies import zscore_over_time
-from cubedynamics.lexcubes.variance import variance_cube
+from cubedynamics import pipe, verbs as v
 
-ndvi_z = zscore_over_time(ndvi_cube, dim="time")
-var_cube = variance_cube(cube, dim="time")
+ndvi_z = (pipe(ndvi_cube) | v.zscore(dim="time")).unwrap()
+var_cube = (pipe(cube) | v.variance(dim="time")).unwrap()
 ```
 
 Every helper keeps the input axes intact so that downstream visualizations and

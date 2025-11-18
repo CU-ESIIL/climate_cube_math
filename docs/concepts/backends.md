@@ -9,9 +9,9 @@ of the math stack can focus on statistics instead of I/O details.
 
 * Loader: `cubedynamics.stream_sentinel2_to_cube`
 * Purpose: multispectral reflectance for vegetation index and QA work.
-* Typical recipe: compute NDVI with
-  `cubedynamics.indices.vegetation.compute_ndvi_from_s2` and then derive
-  z-scores or temporal anomalies with `cubedynamics.stats.anomalies`.
+* Typical recipe: compute NDVI with `cubedynamics.verbs.ndvi_from_s2` and then
+  derive z-scores or temporal anomalies with `cubedynamics.verbs.zscore` or the
+  anomaly helpers.
 
 ## GRIDMET
 
@@ -21,8 +21,7 @@ of the math stack can focus on statistics instead of I/O details.
   back to an in-memory download only when streaming is not available.
 
 ```python
-from cubedynamics import stream_gridmet_to_cube
-from cubedynamics.stats.anomalies import zscore_over_time
+from cubedynamics import stream_gridmet_to_cube, pipe, verbs as v
 
 # Assume boulder_aoi is defined as in the Boulder example
 precip = stream_gridmet_to_cube(
@@ -34,7 +33,7 @@ precip = stream_gridmet_to_cube(
     chunks={"time": 120},
 )
 
-pr_z = zscore_over_time(precip)
+pr_z = (pipe(precip) | v.zscore(dim="time")).unwrap()
 ```
 
 ## PRISM
@@ -44,8 +43,7 @@ pr_z = zscore_over_time(precip)
 * Uses the same streaming-first contract as GRIDMET.
 
 ```python
-from cubedynamics import stream_prism_to_cube
-from cubedynamics.stats.anomalies import zscore_over_time
+from cubedynamics import stream_prism_to_cube, pipe, verbs as v
 
 aoi = {
     "min_lon": -105.4,
@@ -62,7 +60,7 @@ prism = stream_prism_to_cube(
     prefer_streaming=True,
 )
 
-ppt_z = zscore_over_time(prism["ppt"])
+ppt_z = (pipe(prism["ppt"]) | v.zscore(dim="time")).unwrap()
 ```
 
 Each loader keeps the cube streaming whenever possible, emits a warning when

@@ -51,10 +51,18 @@ from cubedynamics.stats.anomalies import rolling_mean
 smooth = rolling_mean(diffs, window=3, dim="time")
 ```
 
-### `zscore_over_time`
+### `zscore`
 
-Standardize each pixel over time by subtracting its mean and dividing by its
-standard deviation, with `STD_EPS` guarding against division by near-zero.
+Standardize each pixel over time (or any axis) by subtracting its mean and
+dividing by its standard deviation. Use the pipe verb (`from cubedynamics
+import verbs as v`) inside a chain or call the factory directly:
+
+```python
+from cubedynamics.ops.stats import zscore
+
+op = zscore(dim="time")
+ndvi_z = op(ndvi_cube)
+```
 
 ## Spatial operators
 

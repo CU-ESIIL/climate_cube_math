@@ -15,8 +15,7 @@ Steps:
 
 ```python
 from cubedynamics.data.sentinel2 import load_s2_cube
-from cubedynamics.indices.vegetation import compute_ndvi_from_s2
-from cubedynamics.stats.anomalies import zscore_over_time
+from cubedynamics import pipe, verbs as v
 from cubedynamics.stats.tails import rolling_tail_dep_vs_center
 from cubedynamics.utils.chunking import coarsen_and_stride
 from cubedynamics.viz.lexcube_viz import show_cube_lexcube
@@ -32,8 +31,11 @@ s2 = load_s2_cube(
     cloud_lt=40,
 )
 
-ndvi = compute_ndvi_from_s2(s2)
-ndvi_z = zscore_over_time(ndvi)
+ndvi_z = (
+    pipe(s2)
+    | v.ndvi_from_s2()
+    | v.zscore(dim="time")
+).unwrap()
 ndvi_z_ds = coarsen_and_stride(ndvi_z, coarsen_factor=4, time_stride=2)
 
 # Rolling tail-dependence cubes vs center pixel

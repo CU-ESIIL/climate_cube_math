@@ -32,7 +32,7 @@ Until then, use the GitHub install above for the working package.
 import numpy as np
 import pandas as pd
 import xarray as xr
-import cubedynamics as cd
+from cubedynamics import pipe, verbs as v
 
 # 1D time series cube with a datetime coordinate – works for multi-dimensional data too
 time = pd.date_range("2000-01-01", periods=12, freq="MS")
@@ -46,10 +46,10 @@ cube = xr.DataArray(
 )
 
 result = (
-    cd.pipe(cube)
-    | cd.anomaly(dim="time")
-    | cd.month_filter([6, 7, 8])
-    | cd.variance(dim="time")
+    pipe(cube)
+    | v.anomaly(dim="time")
+    | v.month_filter([6, 7, 8])
+    | v.variance(dim="time")
 ).unwrap()
 
 float(result.values)
@@ -72,6 +72,7 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 import cubedynamics as cd
+from cubedynamics import pipe, verbs as v
 
 # Define a rough AOI around Boulder, CO (lon/lat pairs in EPSG:4326)
 boulder_aoi = {
@@ -105,9 +106,9 @@ Use the cube inside a pipe chain immediately:
 
 ```python
 jja_var = (
-    cd.pipe(cube)
-    | cd.month_filter([6, 7, 8])
-    | cd.variance(dim="time")
+    pipe(cube)
+    | v.month_filter([6, 7, 8])
+    | v.variance(dim="time")
 ).unwrap()
 
 jja_var
