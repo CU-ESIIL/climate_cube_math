@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import io
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Sequence
 
+import numpy as np
 import requests
 import xarray as xr
 from xarray.backends.plugins import list_engines
@@ -12,12 +13,18 @@ _ENGINE_PREFERENCE = ("h5netcdf", "netcdf4", "scipy")
 _AVAILABLE_ENGINES = list_engines()
 
 
-def _lat_slice(lat_coord: xr.DataArray, south: float, north: float) -> slice:
+def _lat_slice(lat_coord: Sequence[float], south: float, north: float) -> slice:
     """Return a slice that works for ascending or descending latitudes."""
+
+    lat_values = np.asarray(lat_coord)
+    if lat_values.size == 0:
+        return slice(min(south, north), min(south, north))
 
     lo = min(south, north)
     hi = max(south, north)
-    if lat_coord[0] > lat_coord[-1]:
+    first = float(lat_values[0])
+    last = float(lat_values[-1])
+    if first > last:
         # Latitudes decrease north->south, so flip the slice bounds.
         return slice(hi, lo)
     return slice(lo, hi)
@@ -173,7 +180,10 @@ def stream_gridmet_to_cube(
 
     # 3) Spatial subset using the AOI bbox
     bbox = _bbox_from_geojson(aoi_geojson)
-    lat_slice = _lat_slice(ds["lat"], bbox["south"], bbox["north"])
+    lat_index = ds.indexes.get("lat")
+    if lat_index is None:
+        raise KeyError("gridMET dataset is missing the 'lat' coordinate")
+    lat_slice = _lat_slice(lat_index, bbox["south"], bbox["north"])
     lon_slice = slice(min(bbox["west"], bbox["east"]), max(bbox["west"], bbox["east"]))
     da = ds[variable].sel(lat=lat_slice, lon=lon_slice)
 
