@@ -26,9 +26,9 @@ def zscore(dim: str = "time", std_eps: float = 1e-4):
 
         mean = da.mean(dim=dim, skipna=True)
         std = da.std(dim=dim, skipna=True)
-        valid_std = std > std_eps
+        std_safe = xr.where(std > std_eps, std, np.nan)
 
-        z = xr.where(valid_std, (da - mean) / std, np.nan)
+        z = (da - mean) / std_safe
         name = da.name or "var"
         z = z.rename(f"{name}_zscore").astype("float32")
         z.attrs.update(
