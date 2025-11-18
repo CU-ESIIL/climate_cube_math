@@ -12,6 +12,17 @@ _ENGINE_PREFERENCE = ("h5netcdf", "netcdf4", "scipy")
 _AVAILABLE_ENGINES = list_engines()
 
 
+def _lat_slice(lat_coord: xr.DataArray, south: float, north: float) -> slice:
+    """Return a slice that works for ascending or descending latitudes."""
+
+    lo = min(south, north)
+    hi = max(south, north)
+    if lat_coord[0] > lat_coord[-1]:
+        # Latitudes decrease north->south, so flip the slice bounds.
+        return slice(hi, lo)
+    return slice(lo, hi)
+
+
 def _select_stream_engine() -> Optional[str]:
     """Pick the best available xarray engine for streaming gridMET files."""
 
@@ -162,10 +173,16 @@ def stream_gridmet_to_cube(
 
     # 3) Spatial subset using the AOI bbox
     bbox = _bbox_from_geojson(aoi_geojson)
-    da = ds[variable].sel(
-        lat=slice(bbox["south"], bbox["north"]),
-        lon=slice(bbox["west"], bbox["east"]),
-    )
+    lat_slice = _lat_slice(ds["lat"], bbox["south"], bbox["north"])
+    lon_slice = slice(min(bbox["west"], bbox["east"]), max(bbox["west"], bbox["east"]))
+    da = ds[variable].sel(lat=lat_slice, lon=lon_slice)
+
+    if da.sizes.get("lat", 0) == 0:
+        raise ValueError(
+            "gridMET subset is empty along 'lat'. "
+            f"Requested south={bbox['south']}, north={bbox['north']}, "
+            "but resulting lat size is 0."
+        )
 
     # 4) Optional resampling in time (e.g., to monthly)
     if freq != "D":
