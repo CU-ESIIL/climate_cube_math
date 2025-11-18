@@ -4,7 +4,7 @@ CubeDynamics is a streaming-first climate cube math library with ggplot-style pi
 
 ## Features
 
-- **Streaming PRISM/gridMET/Sentinel-2 helpers** (`cd.load_prism_cube`, `cd.load_gridmet_cube`, `cd.load_s2_ndvi_cube`, `cd.load_sentinel2_ndvi_cube`) for immediate analysis without bulk downloads.
+- **Streaming PRISM/gridMET/Sentinel-2 helpers** (`cd.load_prism_cube`, `cd.load_gridmet_cube`, `cd.load_s2_ndvi_cube`, `cd.load_sentinel2_cube`, `cd.load_sentinel2_bands_cube`, `cd.load_sentinel2_ndvi_cube`) for immediate analysis without bulk downloads.
 - **Climate variance, correlation, trend, and synchrony cubes** that run on `xarray` objects and scale from laptops to clusters.
 - **Pipe + verb system** – build readable cube workflows with `pipe(cube) | v.month_filter(...) | v.variance(...)` syntax inspired by ggplot/dplyr.
 - **Verbs namespace (`cubedynamics.verbs`)** so transforms, stats, IO, and visualization live in focused modules.
@@ -92,13 +92,49 @@ cube = cd.load_gridmet_cube(
 pipe(cube) | v.month_filter([6, 7, 8]) | v.variance(dim="time")
 ```
 
-### Sentinel-2 → NDVI Anomaly (z-score) Cube
+### Sentinel-2 loaders
 
 CubeDynamics works on remote-sensing image stacks in addition to climate
-archives. The convenience helper `cd.load_sentinel2_ndvi_cube` streams
-Sentinel-2 Level-2A chips via [`cubo`](https://github.com/carbonplan/cubo),
-computes NDVI from B08 (NIR) and B04 (red), and standardizes the result across
-time. Install `cubo` alongside CubeDynamics to use the helper:
+archives. The Sentinel helpers stream Sentinel-2 Level-2A chips via
+[`cubo`](https://github.com/carbonplan/cubo) and plug directly into the verbs
+API.
+
+#### All Sentinel-2 bands
+
+```python
+import cubedynamics as cd
+
+s2_all = cd.load_sentinel2_cube(
+    lat=40.0,
+    lon=-105.25,
+    start="2018-01-01",
+    end="2018-12-31",
+)
+
+s2_all
+```
+
+`load_sentinel2_cube` returns a `(time, y, x, band)` cube with all Sentinel-2
+L2A bands that `cubo` provides by default (or a user-specified subset via the
+``bands`` keyword). The helper keeps dimensions consistently ordered so it can
+feed directly into downstream verbs.
+
+#### Selected bands
+
+```python
+s2_rgbn = cd.load_sentinel2_bands_cube(
+    lat=40.0,
+    lon=-105.25,
+    start="2018-01-01",
+    end="2018-12-31",
+    bands=["B02", "B03", "B04", "B08"],  # blue, green, red, NIR
+)
+```
+
+`load_sentinel2_bands_cube` enforces that a band list is provided (raising a
+``ValueError`` when empty) and otherwise mirrors the generic loader.
+
+#### NDVI anomaly (z-score) cube
 
 ```python
 import cubedynamics as cd
@@ -114,9 +150,11 @@ ndvi_z = cd.load_sentinel2_ndvi_cube(
 pipe(ndvi_z) | v.show_cube_lexcube(title="Sentinel-2 NDVI z-score")
 ```
 
-`load_sentinel2_ndvi_cube` returns a `(time, y, x)` NDVI z-score cube ready for
-the rest of the verbs API. Pass ``return_raw=True`` to also receive the raw
-Sentinel-2 reflectance stack and intermediate NDVI cube.
+`load_sentinel2_ndvi_cube` uses the band loader to grab the red (B04) and NIR
+(B08) bands, runs `v.ndvi_from_s2(...)`, and standardizes NDVI over time via
+`v.zscore(dim="time")`. The helper returns a `(time, y, x)` NDVI z-score cube
+ready for the rest of the verbs API. Pass ``return_raw=True`` to also receive
+the raw Sentinel-2 reflectance stack and intermediate NDVI cube.
 
 If you prefer to customize every step, the helper simply wraps the manual
 pipeline below:
@@ -208,7 +246,7 @@ Lexcube widgets require a live Python environment (Jupyter, Colab, Binder). They
 
 - `pipe` for wrapping any cube before piping.
 - `verbs` (``from cubedynamics import verbs as v``) exposes transforms, statistics, IO, and visualization helpers.
-- Streaming helpers: `cd.load_prism_cube`, `cd.load_gridmet_cube`, `cd.load_s2_cube`, `cd.load_s2_ndvi_cube`, `cd.load_sentinel2_ndvi_cube`.
+- Streaming helpers: `cd.load_prism_cube`, `cd.load_gridmet_cube`, `cd.load_s2_cube`, `cd.load_s2_ndvi_cube`, `cd.load_sentinel2_cube`, `cd.load_sentinel2_bands_cube`, `cd.load_sentinel2_ndvi_cube`.
 - Vegetation helper: `v.ndvi_from_s2` for direct NDVI calculation on Sentinel-2 cubes.
 - Stats verbs: `v.anomaly`, `v.month_filter`, `v.variance`, `v.zscore`, `v.correlation_cube`, and more under `cubedynamics.ops.*`.
 - IO verbs: `v.to_netcdf`, `v.to_zarr`, etc.
