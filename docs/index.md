@@ -10,47 +10,39 @@ Streaming-first climate cube math with ggplot-style piping.
 
 ## Quickstart in a Jupyter notebook
 
-Open a fresh notebook, install CubeDynamics from GitHub, and run the following:
+Open a fresh notebook, install CubeDynamics, and stream a climate cube directly into the pipe system:
 
-1. Install CubeDynamics from GitHub (terminal or notebook cell):
+1. Install CubeDynamics (terminal or notebook cell):
 
    ```bash
-   pip install "git+https://github.com/CU-ESIIL/climate_cube_math.git@main"
+   pip install cubedynamics
+   # or pip install "git+https://github.com/CU-ESIIL/climate_cube_math.git@main"
    ```
 
-2. Create a tiny in-memory cube and run a pipe chain:
+2. Load a PRISM cube and run the verbs pipeline:
 
    ```python
-   import numpy as np
-   import pandas as pd
-   import xarray as xr
+   import cubedynamics as cd
    from cubedynamics import pipe, verbs as v
 
-   # Build a 12-month time series with a datetime coordinate
-   time = pd.date_range("2000-01-01", periods=12, freq="MS")
-   values = np.arange(12, dtype=float)
-
-   cube = xr.DataArray(
-       values,
-       dims=["time"],
-       coords={"time": time},
-       name="example_variable",
+   cube = cd.load_prism_cube(
+       lat=40.0,
+       lon=-105.25,
+       start="2000-01-01",
+       end="2020-12-31",
+       variable="ppt",
    )
 
-   result = (
-       pipe(cube)
-       | v.anomaly(dim="time")
-       | v.month_filter([6, 7, 8])
+   pipe(cube) \
+       | v.month_filter([6, 7, 8]) \
        | v.variance(dim="time")
-   ).unwrap()
-
-   print("Variance of anomalies over JJA:", float(result.values))
    ```
 
-This notebook-safe workflow only depends on `numpy`, `pandas`, `xarray`, and `cubedynamics`. More advanced examples—like streaming PRISM/gridMET data or NDVI synchrony—will live in dedicated notebooks and docs pages as the adapters solidify. See [notebooks/quickstart_cubedynamics.ipynb](https://github.com/CU-ESIIL/climate_cube_math/blob/main/notebooks/quickstart_cubedynamics.ipynb) in the repository for the runnable tutorial notebook.
+`pipe(value)` wraps the `xarray` object so you can forward it through verbs with the `|` operator. In notebooks the last `Pipe` expression in a cell automatically displays the wrapped DataArray/Dataset, so `.unwrap()` is optional. See [notebooks/quickstart_cubedynamics.ipynb](https://github.com/CU-ESIIL/climate_cube_math/blob/main/notebooks/quickstart_cubedynamics.ipynb) for the runnable tutorial notebook.
 
 ## Learn more
 
 - Start with the [Getting Started guide](getting_started.md) for installation details and the first notebook pipeline.
 - Dive into [Pipe Syntax & Verbs](pipe_syntax.md) to understand how each operation composes.
+- Visualize cubes interactively with the [Lexcube Integration guide](lexcube.md).
 - Explore the operations references when you need specifics on transforms, stats, or IO helpers.

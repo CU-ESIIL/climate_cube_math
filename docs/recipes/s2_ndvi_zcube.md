@@ -17,14 +17,13 @@ widget.
    the spatial median.
 
 ```python
-from cubedynamics.data.sentinel2 import load_s2_cube
+import cubedynamics as cd
 from cubedynamics import pipe, verbs as v
 from cubedynamics.utils.chunking import coarsen_and_stride
-from cubedynamics.viz.lexcube_viz import show_cube_lexcube
 from cubedynamics.viz.qa_plots import plot_median_over_space
 
 # 1. Load Sentinel-2 cube
-s2 = load_s2_cube(
+s2 = cd.load_s2_cube(
     lat=43.89,
     lon=-102.18,
     start="2023-06-01",
@@ -39,7 +38,7 @@ ndvi_z = (
     pipe(s2)
     | v.ndvi_from_s2()
     | v.zscore(dim="time")
-).unwrap()
+)
 
 # 3. Optional: coarsen spatially and subsample in time
 ndvi_z_ds = coarsen_and_stride(
@@ -48,16 +47,17 @@ ndvi_z_ds = coarsen_and_stride(
     time_stride=2,
 )
 
-# 4. Lexcube visualization
-widget = show_cube_lexcube(
-    ndvi_z_ds.clip(-3, 3),
+# 4. Lexcube visualization (pipe verb + helper)
+ndvi_z_clip = ndvi_z_ds.clip(-3, 3)
+pipe(ndvi_z_clip) | v.show_cube_lexcube(
     title="Sentinel-2 NDVI z-scores (coarsened)",
     cmap="RdBu_r",
     vmin=-3,
     vmax=3,
 )
 
-# In a notebook: widget.plot()
+# Outside of a pipe you can call the helper directly
+cd.show_cube_lexcube(ndvi_z_clip)
 
 # 5. QA plot of median z-score over space
 ax = plot_median_over_space(

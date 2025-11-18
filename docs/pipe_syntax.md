@@ -10,7 +10,7 @@ from cubedynamics import pipe
 pipe_obj = pipe(cube)
 ```
 
-`pipe(value)` wraps any `xarray.DataArray` or `xarray.Dataset` without altering it. Use the `|` operator to apply verbs, then call `.unwrap()` to retrieve the final object.
+`pipe(value)` wraps any `xarray.DataArray` or `xarray.Dataset` without altering it. Use the `|` operator to apply verbs. In notebooks the last `Pipe` expression in a cell auto-displays the wrapped object, so calling `.unwrap()` is optional unless you immediately need the `xarray` object.
 
 ## Chaining verbs
 
@@ -21,7 +21,7 @@ result = (
     pipe(cube)
     | v.anomaly(dim="time")
     | v.variance(dim="time")
-).unwrap()
+)
 ```
 
 Each verb receives the previous output. Pipes simply pass the cube along, so as long as the object behaves like an `xarray` structure the chain continues.
@@ -40,7 +40,7 @@ from cubedynamics import pipe, verbs as v
 time = np.arange(4)
 cube = xr.DataArray([1.0, 2.0, 3.0, 4.0], dims=["time"], coords={"time": time})
 
-anoms = (pipe(cube) | v.anomaly(dim="time")).unwrap()
+anoms = pipe(cube) | v.anomaly(dim="time")
 ```
 
 `anomaly` subtracts the mean along the dimension you specify.
@@ -58,7 +58,7 @@ values = np.arange(12)
 
 cube = xr.DataArray(values, dims=["time"], coords={"time": time})
 
-summer = (pipe(cube) | v.month_filter([6, 7, 8])).unwrap()
+summer = pipe(cube) | v.month_filter([6, 7, 8])
 ```
 
 `month_filter` keeps only the months you list (in numeric form) based on the `time` coordinate.
@@ -68,7 +68,7 @@ summer = (pipe(cube) | v.month_filter([6, 7, 8])).unwrap()
 ```python
 from cubedynamics import pipe, verbs as v
 
-var = (pipe(cube) | v.variance(dim="time")).unwrap()
+var = pipe(cube) | v.variance(dim="time")
 ```
 
 `variance` runs `xarray.var` under the hood, so any axis can be supplied.
@@ -80,7 +80,7 @@ from pathlib import Path
 from cubedynamics import pipe, verbs as v
 
 path = Path("example.nc")
-(pipe(cube) | v.to_netcdf(path)).unwrap()
+pipe(cube) | v.to_netcdf(path)
 ```
 
 `to_netcdf` writes the incoming cube to disk (returning the original object so the pipe can continue). When running docs examples you can point to a temporary directory such as `/tmp/example.nc`.
@@ -96,10 +96,29 @@ other = xr.DataArray([0.5, 1.5, 2.5, 3.5], dims=["time"], coords={"time": time})
 corr = (
     pipe(cube)
     | v.correlation_cube(other, dim="time")
-).unwrap()
+)
 ```
 
 `correlation_cube` computes correlations between the pipeline cube and another cube along the dimension provided.
+
+### `show_cube_lexcube(**kwargs)`
+
+```python
+import cubedynamics as cd
+from cubedynamics import pipe, verbs as v
+
+cube = cd.load_gridmet_cube(
+    lat=40.0,
+    lon=-105.25,
+    start="2000-01-01",
+    end="2020-12-31",
+    variable="pr",
+)
+
+pipe(cube) | v.month_filter([6, 7, 8]) | v.show_cube_lexcube(cmap="RdBu_r")
+```
+
+`show_cube_lexcube` integrates [Lexcube](https://github.com/carbonplan/lexcube) for interactive `(time, y, x)` exploration. The verb displays the widget as a side-effect and returns the original cube so the pipeline can keep flowing. The helper also exists as `cubedynamics.show_cube_lexcube(cube, **kwargs)` for non-pipe contexts.
 
 ## Example: chaining a streamed cube
 
@@ -109,7 +128,7 @@ Assuming `boulder_aoi` is defined as in the getting started example, you can str
 import cubedynamics as cd
 from cubedynamics import pipe, verbs as v
 
-cube = cd.stream_gridmet_to_cube(
+cube = cd.load_gridmet_cube(
     aoi_geojson=boulder_aoi,
     variable="pr",
     start="2000-01-01",
@@ -118,11 +137,7 @@ cube = cd.stream_gridmet_to_cube(
     chunks={"time": 120},
 )
 
-jja_var = (
-    pipe(cube)
-    | v.month_filter([6, 7, 8])
-    | v.variance(dim="time")
-).unwrap()
+pipe(cube) | v.month_filter([6, 7, 8]) | v.variance(dim="time")
 ```
 
 The streamed cube already carries a datetime `time` coordinate so verbs such as `month_filter` and `variance` work without any
@@ -130,7 +145,7 @@ extra preparation.
 
 ## How Pipe.unwrap works
 
-`Pipe.unwrap()` simply returns the wrapped `xarray` object after the final verb. It does not copy data; it only exposes the last computed value.
+`Pipe.unwrap()` simply returns the wrapped `xarray` object after the final verb. It does not copy data; it only exposes the last computed value. Because `Pipe` implements `_repr_html_`/`__repr__`, notebooks display the inner object automatically so `.unwrap()` is only necessary when you need the DataArray/Dataset immediately (e.g., assigning to a variable mid-cell).
 
 ## Define your own verbs
 
@@ -145,7 +160,7 @@ def my_custom_op(param):
 
 from cubedynamics import pipe
 
-result = (pipe(cube) | my_custom_op(param=42)).unwrap()
+result = pipe(cube) | my_custom_op(param=42)
 ```
 
 Register your verb in your own module or import it in your notebook, then use it alongside the built-in operations.

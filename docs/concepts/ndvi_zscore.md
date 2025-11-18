@@ -42,10 +42,10 @@ visualizations consume.
 ## End-to-end example
 
 ```python
-from cubedynamics.data.sentinel2 import load_s2_cube
+import cubedynamics as cd
 from cubedynamics import pipe, verbs as v
 
-s2 = load_s2_cube(
+s2 = cd.load_s2_cube(
     lat=43.89,
     lon=-102.18,
     start="2023-06-01",
@@ -57,5 +57,5 @@ ndvi_z = (
     pipe(s2)
     | v.ndvi_from_s2()
     | v.zscore(dim="time")
-).unwrap()
+)
 ```

@@ -10,6 +10,12 @@ using `mkdocstrings`.
 ::: cubedynamics.data.gridmet
 ::: cubedynamics.data.prism
 
+## Pipe + verbs
+
+- `cubedynamics.pipe`: exposes the lightweight `Pipe` helper used throughout the documentation. Import via `from cubedynamics import pipe`.
+- `cubedynamics.verbs`: namespace of pipe-able callables (import with `from cubedynamics import verbs as v`). Includes transforms (`v.anomaly`), statistics (`v.variance`, `v.correlation_cube`), IO helpers, and visualization verbs such as `v.show_cube_lexcube`.
+- `cubedynamics.show_cube_lexcube`: functional helper that mirrors the verb and renders a Lexcube widget without entering a pipe chain.
+
 ## Vegetation indices
 
 ::: cubedynamics.indices.vegetation

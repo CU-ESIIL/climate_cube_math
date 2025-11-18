@@ -25,37 +25,28 @@ Until then, use the GitHub install above for the working package.
 ## First pipeline in a notebook
 
 1. Install CubeDynamics in your notebook environment (see the command above).
-2. Create a tiny in-memory cube. In CubeDynamics a “cube” is simply an `xarray.DataArray` or `xarray.Dataset` that carries time/space coordinates.
+2. Load or create an `xarray` cube—anything with time/space coordinates works.
 3. Chain a few verbs with the pipe syntax:
 
 ```python
-import numpy as np
-import pandas as pd
-import xarray as xr
+import cubedynamics as cd
 from cubedynamics import pipe, verbs as v
 
-# 1D time series cube with a datetime coordinate – works for multi-dimensional data too
-time = pd.date_range("2000-01-01", periods=12, freq="MS")
-values = np.arange(12, dtype=float)
-
-cube = xr.DataArray(
-    values,
-    dims=["time"],
-    coords={"time": time},
-    name="example_variable",
+cube = cd.load_prism_cube(
+    lat=40.0,
+    lon=-105.25,
+    start="2000-01-01",
+    end="2020-12-31",
+    variable="ppt",
 )
 
-result = (
-    pipe(cube)
-    | v.anomaly(dim="time")
-    | v.month_filter([6, 7, 8])
+pipe(cube) \
+    | v.anomaly(dim="time") \
+    | v.month_filter([6, 7, 8]) \
     | v.variance(dim="time")
-).unwrap()
-
-float(result.values)
 ```
 
-This pipeline is dimension-agnostic—the verbs accept any axes you provide. The `.unwrap()` call returns the final `xarray` object so it behaves like any other DataArray.
+This pipeline is dimension-agnostic—the verbs accept any axes you provide. `pipe(value)` wraps the `xarray` object and the `|` operator forwards it through each verb. In notebooks the final `Pipe` expression auto-displays the inner DataArray/Dataset so `.unwrap()` is optional.
 
 ## Beyond the minimal example
 
@@ -68,9 +59,6 @@ This pipeline is dimension-agnostic—the verbs accept any axes you provide. The
 Copy/paste the snippet below into a notebook cell to stream a monthly precipitation cube straight into `xarray`:
 
 ```python
-import numpy as np
-import pandas as pd
-import xarray as xr
 import cubedynamics as cd
 from cubedynamics import pipe, verbs as v
 
@@ -90,7 +78,7 @@ boulder_aoi = {
     },
 }
 
-cube = cd.stream_gridmet_to_cube(
+cube = cd.load_gridmet_cube(
     aoi_geojson=boulder_aoi,
     variable="pr",
     start="2000-01-01",
@@ -99,17 +87,5 @@ cube = cd.stream_gridmet_to_cube(
     chunks={"time": 120},
 )
 
-cube
-```
-
-Use the cube inside a pipe chain immediately:
-
-```python
-jja_var = (
-    pipe(cube)
-    | v.month_filter([6, 7, 8])
-    | v.variance(dim="time")
-).unwrap()
-
-jja_var
+pipe(cube) | v.month_filter([6, 7, 8]) | v.variance(dim="time")
 ```

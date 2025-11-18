@@ -7,10 +7,7 @@ Transform verbs reshape or filter cubes before you compute downstream statistics
 Computes anomalies by subtracting the mean along a dimension.
 
 ```python
-result = (
-    pipe(cube)
-    | v.anomaly(dim="time")
-).unwrap()
+result = pipe(cube) | v.anomaly(dim="time")
 ```
 
 - **Parameters**
@@ -22,11 +19,7 @@ result = (
 Filters a cube to the specified month numbers (1–12). Useful for seasonal composites before running statistics.
 
 ```python
-result = (
-    pipe(cube)
-    | v.month_filter([6, 7, 8])
-    | v.anomaly(dim="time")
-).unwrap()
+result = pipe(cube) | v.month_filter([6, 7, 8]) | v.anomaly(dim="time")
 ```
 
 - **Parameters**
