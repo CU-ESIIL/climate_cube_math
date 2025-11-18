@@ -4,8 +4,10 @@ from typing import Dict, Optional
 import io
 import requests
 import xarray as xr
+from xarray.backends.plugins import list_engines
 
 GRIDMET_BASE_URL = "https://www.northwestknowledge.net/metdata/data"
+H5NETCDF_AVAILABLE = "h5netcdf" in list_engines()
 
 
 def _bbox_from_geojson(aoi_geojson: Dict) -> Dict[str, float]:
@@ -48,12 +50,14 @@ def _open_gridmet_year(
         buf.write(chunk)
     buf.seek(0)
 
-    ds = xr.open_dataset(
-        buf,
-        engine="h5netcdf",
-        decode_times=True,
-        chunks=chunks,
-    )
+    open_kwargs = {
+        "decode_times": True,
+        "chunks": chunks,
+    }
+    if H5NETCDF_AVAILABLE:
+        open_kwargs["engine"] = "h5netcdf"
+
+    ds = xr.open_dataset(buf, **open_kwargs)
 
     # gridMET uses "day" as the time dimension; normalize to "time"
     if "day" in ds.dims:
