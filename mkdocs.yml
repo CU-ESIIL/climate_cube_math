@@ -6,7 +6,18 @@ site_url: "https://OWNER.github.io/REPO/"
 nav:
   - Home: index.md
   - Vignette: vignette.ipynb
-  - API reference: api.md
+  - Concepts:
+      - What is a climate cube?: concepts/climate_cubes.md
+      - NDVI & z-scores: concepts/ndvi_zscore.md
+      - Rolling correlation & tail dependence: concepts/rolling_stats.md
+      - Climate cube math primitives: concepts/cube_math.md
+  - Recipes:
+      - Sentinel-2 NDVI z-score cube: recipes/s2_ndvi_zcube.md
+      - Rolling corr vs center pixel: recipes/s2_corr_center.md
+      - Tail dependence vs center pixel: recipes/s2_tail_dep_center.md
+  - API:
+      - climate_cube_math: api/climate_cube_math.md
+      - Legacy demo helpers: api.md
 
 repo_url: https://github.com/CU-ESIIL/Project_group_OASIS
 edit_uri: edit/main/docs/
@@ -38,7 +49,15 @@ extra_css:
 
 plugins:
   - search
-  - mkdocstrings
+  - mkdocstrings:
+      handlers:
+        python:
+          paths:
+            - code
+          options:
+            docstring_style: numpy
+            merge_init_into_class: true
+            show_source: false
   - git-revision-date
   - mkdocs-jupyter:
       include_source: true
