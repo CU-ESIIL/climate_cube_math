@@ -38,6 +38,13 @@ pipe(cube) \
     | v.variance(dim="time")
 ```
 
+`cd.load_prism_cube` accepts exactly one area-of-interest (AOI) option: a
+`lat`/`lon` point, a `[min_lon, min_lat, max_lon, max_lat]` bounding box via
+`bbox`, or a GeoJSON Feature/FeatureCollection via `aoi_geojson`. The keyword
+API shown above matches the documentation and is preferred, though the legacy
+positional form (`load_prism_cube(["ppt"], "2000-01-01", "2000-12-31", aoi)`) is
+still available for backward compatibility.
+
 ### Pipe ergonomics
 
 - `pipe(value)` wraps any `xarray.DataArray` or `xarray.Dataset` without copying it.

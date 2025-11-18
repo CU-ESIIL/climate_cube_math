@@ -46,6 +46,11 @@ pipe(cube) \
     | v.variance(dim="time")
 ```
 
+The loader accepts exactly one AOI definition: a `lat`/`lon` point, a bounding
+box via `bbox=[min_lon, min_lat, max_lon, max_lat]`, or a GeoJSON Feature (or
+FeatureCollection) via `aoi_geojson`. The old positional signature is deprecated
+but still works for existing notebooks.
+
 This pipeline is dimension-agnostic—the verbs accept any axes you provide. `pipe(value)` wraps the `xarray` object and the `|` operator forwards it through each verb. In notebooks the final `Pipe` expression auto-displays the inner DataArray/Dataset so `.unwrap()` is optional.
 
 ## Beyond the minimal example

@@ -38,6 +38,11 @@ Open a fresh notebook, install CubeDynamics, and stream a climate cube directly 
        | v.variance(dim="time")
    ```
 
+   `load_prism_cube` accepts keyword-only AOI definitions—pick exactly one of a
+   `lat`/`lon` point, a `[min_lon, min_lat, max_lon, max_lat]` bounding box via
+   `bbox`, or a GeoJSON Feature/FeatureCollection via `aoi_geojson`. The
+   positional signature from previous releases still works but is deprecated.
+
 `pipe(value)` wraps the `xarray` object so you can forward it through verbs with the `|` operator. In notebooks the last `Pipe` expression in a cell automatically displays the wrapped DataArray/Dataset, so `.unwrap()` is optional. See [notebooks/quickstart_cubedynamics.ipynb](https://github.com/CU-ESIIL/climate_cube_math/blob/main/notebooks/quickstart_cubedynamics.ipynb) for the runnable tutorial notebook.
 
 ## Learn more

@@ -22,6 +22,9 @@ pipe(cube) \
     | v.show_cube_lexcube(title="PRISM JJA precipitation", cmap="RdBu_r")
 ```
 
+Pick whichever AOI input fits your workflow—`lat`/`lon` point, `bbox`, or a
+GeoJSON feature via `aoi_geojson`. Only one AOI option may be set per call.
+
 Behind the scenes the verb routes `(time, y, x)` data into Lexcube's widget API. As long as the cube is a 3D `xarray.DataArray` (or a Dataset with a single variable), the visualization launches instantly in a live notebook.
 
 You can also call the helper directly when you are not inside a pipe:
