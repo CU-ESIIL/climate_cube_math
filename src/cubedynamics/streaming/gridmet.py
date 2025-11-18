@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import io
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Sequence
 
+import numpy as np
 import requests
 import xarray as xr
 from xarray.backends.plugins import list_engines
@@ -10,6 +11,60 @@ from xarray.backends.plugins import list_engines
 GRIDMET_BASE_URL = "https://www.northwestknowledge.net/metdata/data"
 _ENGINE_PREFERENCE = ("h5netcdf", "netcdf4", "scipy")
 _AVAILABLE_ENGINES = list_engines()
+
+
+def _axis_slice(coord: Sequence[float], bound_a: float, bound_b: float) -> slice:
+    """Return a slice that spans ``[bound_a, bound_b]`` regardless of axis order."""
+
+    values = np.asarray(coord, dtype=float)
+    if values.size == 0:
+        val = float(min(bound_a, bound_b))
+        return slice(val, val)
+
+    lo = float(min(bound_a, bound_b))
+    hi = float(max(bound_a, bound_b))
+
+    axis_min = float(np.nanmin(values))
+    axis_max = float(np.nanmax(values))
+    if hi < axis_min or lo > axis_max:
+        raise ValueError(
+            "Requested bounds fall completely outside the coordinate range: "
+            f"[{lo}, {hi}] vs [{axis_min}, {axis_max}]"
+        )
+
+    descending = values[0] > values[-1]
+
+    if descending:
+        mask = (values <= hi) & (values >= lo)
+    else:
+        mask = (values >= lo) & (values <= hi)
+
+    if mask.any():
+        idxs = np.nonzero(mask)[0]
+        start = float(values[idxs[0]])
+        stop = float(values[idxs[-1]])
+    else:
+        # The AOI can fall entirely between coordinate centers (common when the
+        # bounding box is smaller than the ~1/24 degree grid). Fall back to the
+        # nearest coordinate so the subset still contains at least one cell.
+        target = (lo + hi) / 2.0
+        offset = np.abs(values - target)
+        idx = int(np.nanargmin(offset))
+        start = stop = float(values[idx])
+
+    return slice(start, stop)
+
+
+def _lat_slice(lat_coord: Sequence[float], south: float, north: float) -> slice:
+    """Return a latitude slice that works for ascending or descending axes."""
+
+    return _axis_slice(lat_coord, south, north)
+
+
+def _lon_slice(lon_coord: Sequence[float], west: float, east: float) -> slice:
+    """Return a longitude slice that works for ascending or descending axes."""
+
+    return _axis_slice(lon_coord, west, east)
 
 
 def _select_stream_engine() -> Optional[str]:
@@ -162,10 +217,26 @@ def stream_gridmet_to_cube(
 
     # 3) Spatial subset using the AOI bbox
     bbox = _bbox_from_geojson(aoi_geojson)
-    da = ds[variable].sel(
-        lat=slice(bbox["south"], bbox["north"]),
-        lon=slice(bbox["west"], bbox["east"]),
-    )
+    lat_coord = ds.coords.get("lat")
+    if lat_coord is None:
+        raise KeyError("gridMET dataset is missing the 'lat' coordinate")
+    lon_coord = ds.coords.get("lon")
+    if lon_coord is None:
+        raise KeyError("gridMET dataset is missing the 'lon' coordinate")
+
+    lat_slice = _lat_slice(lat_coord, bbox["south"], bbox["north"])
+    lon_slice = _lon_slice(lon_coord, bbox["west"], bbox["east"])
+    da = ds[variable].sel(lat=lat_slice, lon=lon_slice)
+
+    empty_dims = [dim for dim in ("lat", "lon") if da.sizes.get(dim, 0) == 0]
+    if empty_dims:
+        raise ValueError(
+            "gridMET subset is empty along "
+            + ", ".join(f"'{dim}'" for dim in empty_dims)
+            + ". "
+            f"Requested south={bbox['south']}, north={bbox['north']}, "
+            f"west={bbox['west']}, east={bbox['east']}"
+        )
 
     # 4) Optional resampling in time (e.g., to monthly)
     if freq != "D":
