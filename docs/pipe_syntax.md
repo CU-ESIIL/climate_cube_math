@@ -93,6 +93,32 @@ corr = (
 
 `correlation_cube` computes correlations between the pipeline cube and another cube along the dimension provided.
 
+## Example: chaining a streamed cube
+
+Assuming `boulder_aoi` is defined as in the getting started example, you can stream gridMET data and flow it through the pipe:
+
+```python
+import cubedynamics as cd
+
+cube = cd.stream_gridmet_to_cube(
+    aoi_geojson=boulder_aoi,
+    variable="pr",
+    start="2000-01-01",
+    end="2020-12-31",
+    freq="MS",
+    chunks={"time": 120},
+)
+
+jja_var = (
+    cd.pipe(cube)
+    | cd.month_filter([6, 7, 8])
+    | cd.variance(dim="time")
+).unwrap()
+```
+
+The streamed cube already carries a datetime `time` coordinate so verbs such as `month_filter` and `variance` work without any
+extra preparation.
+
 ## How Pipe.unwrap works
 
 `Pipe.unwrap()` simply returns the wrapped `xarray` object after the final verb. It does not copy data; it only exposes the last computed value.

@@ -28,11 +28,28 @@ cube = cubedynamics.stream_prism_to_cube(
   when streaming is unavailable
 
 ```python
+boulder_aoi = {
+    "type": "Feature",
+    "properties": {"name": "Boulder, CO"},
+    "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+            [-105.35, 40.00],
+            [-105.35, 40.10],
+            [-105.20, 40.10],
+            [-105.20, 40.00],
+            [-105.35, 40.00],
+        ]],
+    },
+}
+
 cube = cubedynamics.stream_gridmet_to_cube(
-    aoi_geojson,
-    variable="tmmx",
-    dates=("2010-01-01", "2010-12-31"),
-    prefer_streaming=True,
+    aoi_geojson=boulder_aoi,
+    variable="pr",
+    start="2000-01-01",
+    end="2020-12-31",
+    freq="MS",
+    chunks={"time": 120},
 )
 ```
 
