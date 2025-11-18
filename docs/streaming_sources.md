@@ -23,6 +23,10 @@ cube = cd.load_prism_cube(
 )
 ```
 
+`load_prism_cube` requires one AOI input (`lat`/`lon`, `bbox`, or `aoi_geojson`).
+The examples throughout the docs use the keyword-only form that mirrors the
+public API.
+
 ## gridMET
 
 - Loader: `cubedynamics.load_gridmet_cube`

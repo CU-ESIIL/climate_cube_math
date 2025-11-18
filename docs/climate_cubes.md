@@ -23,7 +23,9 @@ print(cube.dims)
 
 The loader harmonizes CRS, attaches metadata, and returns a lazily-evaluated
 `xarray.Dataset`. Other loaders follow the same interface (`cd.load_prism_cube`,
-`cd.load_s2_cube`, `cd.load_s2_ndvi_cube`).
+`cd.load_s2_cube`, `cd.load_s2_ndvi_cube`), using the keyword-only AOI grammar:
+pick a `lat`/`lon` point, a `[min_lon, min_lat, max_lon, max_lat]` bounding box,
+or a GeoJSON Feature/FeatureCollection via `aoi_geojson`.
 
 ## Derived diagnostics
 
