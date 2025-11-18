@@ -7,11 +7,9 @@ IO verbs move cubes to disk or other systems without breaking the pipe chain. Th
 Writes the upstream cube to a NetCDF file.
 
 ```python
-(
-    pipe(cube)
-    | v.anomaly(dim="time")
+pipe(cube) \
+    | v.anomaly(dim="time") \
     | v.to_netcdf("out.nc")
-).unwrap()
 ```
 
 - **Parameters**

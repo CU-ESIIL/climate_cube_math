@@ -14,14 +14,13 @@ Steps:
 4. Visualize the difference cube with Lexcube and review QA medians.
 
 ```python
-from cubedynamics.data.sentinel2 import load_s2_cube
+import cubedynamics as cd
 from cubedynamics import pipe, verbs as v
 from cubedynamics.stats.tails import rolling_tail_dep_vs_center
 from cubedynamics.utils.chunking import coarsen_and_stride
-from cubedynamics.viz.lexcube_viz import show_cube_lexcube
 from cubedynamics.viz.qa_plots import plot_median_over_space
 
-s2 = load_s2_cube(
+s2 = cd.load_s2_cube(
     lat=43.89,
     lon=-102.18,
     start="2023-06-01",
@@ -35,7 +34,7 @@ ndvi_z = (
     pipe(s2)
     | v.ndvi_from_s2()
     | v.zscore(dim="time")
-).unwrap()
+)
 ndvi_z_ds = coarsen_and_stride(ndvi_z, coarsen_factor=4, time_stride=2)
 
 # Rolling tail-dependence cubes vs center pixel
@@ -47,15 +46,13 @@ bottom_tail_cube, top_tail_cube, diff_tail_cube = rolling_tail_dep_vs_center(
 )
 
 # Visualize the difference cube with Lexcube
-diff_widget = show_cube_lexcube(
-    diff_tail_cube.clip(-1, 1),
+diff_clip = diff_tail_cube.clip(-1, 1)
+pipe(diff_clip) | v.show_cube_lexcube(
     title="Tail-dependence difference (bottom - top) vs center pixel",
     cmap="RdBu_r",
     vmin=-1,
     vmax=1,
 )
-
-# In a notebook: diff_widget.plot()
 
 # QA: median tail-dependence difference over space
 ax = plot_median_over_space(

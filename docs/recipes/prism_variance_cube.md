@@ -5,7 +5,8 @@ records.  This recipe loads monthly precipitation, computes anomalies, and
 spatially coarsens the results for downstream QA plots.
 
 ```python
-from cubedynamics import stream_prism_to_cube, pipe, verbs as v
+import cubedynamics as cd
+from cubedynamics import pipe, verbs as v
 from cubedynamics.stats.anomalies import temporal_anomaly
 from cubedynamics.stats.spatial import spatial_coarsen_mean
 
@@ -16,16 +17,15 @@ aoi = {
     "max_lat": 40.1,
 }
 
-prism = stream_prism_to_cube(
-    variables=["ppt"],
+prism = cd.load_prism_cube(
+    variable="ppt",
     start="2000-01-01",
     end="2005-12-31",
     aoi=aoi,
-    prefer_streaming=True,
 )
 
 ppt = prism["ppt"]
 ppt_anom = temporal_anomaly(ppt, dim="time")
-ppt_z = (pipe(ppt_anom) | v.zscore(dim="time")).unwrap()
+ppt_z = pipe(ppt_anom) | v.zscore(dim="time")
 ppt_z_coarse = spatial_coarsen_mean(ppt_z, factor_y=2, factor_x=2)
 ```

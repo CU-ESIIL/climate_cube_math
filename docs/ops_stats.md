@@ -7,10 +7,7 @@ Statistic verbs summarize cubes along dimensions or compare axes. They live in `
 Computes the variance along a dimension.
 
 ```python
-result = (
-    pipe(cube)
-    | v.variance(dim="time")
-).unwrap()
+result = pipe(cube) | v.variance(dim="time")
 ```
 
 ## `zscore(dim="time", std_eps=1e-4)`
@@ -18,10 +15,7 @@ result = (
 Standardizes each pixel/voxel along a dimension by subtracting the mean and dividing by the standard deviation.
 
 ```python
-result = (
-    pipe(cube)
-    | v.zscore(dim="time")
-).unwrap()
+result = pipe(cube) | v.zscore(dim="time")
 ```
 
 - **Parameters**
@@ -38,10 +32,7 @@ result = (
 A forthcoming verb for building correlation matrices/surfaces between variables, time windows, or anchor pixels.
 
 ```python
-result = (
-    pipe(cube)
-    | v.correlation_cube(target="ndvi", reference="pr")
-).unwrap()
+result = pipe(cube) | v.correlation_cube(target="ndvi", reference="pr")
 ```
 
 - **Intended behavior**: compute rolling or full-period correlations between named data variables or coordinates, returning an `xarray` cube with correlation coefficients.

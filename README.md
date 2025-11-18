@@ -4,63 +4,47 @@ CubeDynamics is a streaming-first climate cube math library with ggplot-style pi
 
 ## Features
 
-- **Streaming PRISM/gridMET/NDVI climate data** for immediate analysis without bulk downloads.
+- **Streaming PRISM/gridMET/Sentinel-2 helpers** (`cd.load_prism_cube`, `cd.load_gridmet_cube`, `cd.load_s2_ndvi_cube`) for immediate analysis without bulk downloads.
 - **Climate variance, correlation, trend, and synchrony cubes** that run on `xarray` objects and scale from laptops to clusters.
-- **Pipe system** – build readable cube workflows with `pipe(cube) | v.anomaly() | v.variance()` syntax inspired by ggplot and dplyr.
-- **Verbs namespace (`cubedynamics.verbs`)** so transforms, stats, and IO live in focused modules.
+- **Pipe + verb system** – build readable cube workflows with `pipe(cube) | v.month_filter(...) | v.variance(...)` syntax inspired by ggplot/dplyr.
+- **Verbs namespace (`cubedynamics.verbs`)** so transforms, stats, IO, and visualization live in focused modules.
 - **Cloud-ready architecture** that embraces chunked processing, lazy execution, and storage backends like NetCDF or Zarr.
-
-## Installation
-
-### Install from GitHub (current, recommended)
-
-Install the `cubedynamics` package directly from the `main` branch to get the latest commits:
-
-```bash
-pip install "git+https://github.com/CU-ESIIL/climate_cube_math.git@main"
-```
-
-### Install from PyPI (future)
-
-Once the first release is published to PyPI, installing will be as simple as:
-
-```bash
-pip install cubedynamics
-```
-
-Until that upload happens the PyPI name is reserved but unavailable.
 
 ## Quickstart
 
-This example runs in a fresh Jupyter notebook that only has `numpy`, `pandas`, `xarray`, and `cubedynamics` installed.
+Install CubeDynamics from PyPI (or GitHub while the release cadence is rapid) and use the pipe + verbs API everywhere:
+
+```bash
+pip install cubedynamics
+# or pip install "git+https://github.com/CU-ESIIL/climate_cube_math.git@main"
+```
 
 ```python
-import numpy as np
-import pandas as pd
-import xarray as xr
+import cubedynamics as cd
 from cubedynamics import pipe, verbs as v
 
-# 1. Create a tiny example "cube" with a datetime coordinate
-time = pd.date_range("2000-01-01", periods=12, freq="MS")
-values = np.arange(12, dtype=float)
-
-cube = xr.DataArray(
-    values,
-    dims=["time"],
-    coords={"time": time},
-    name="example_variable",
+# Load a PRISM precipitation cube that streams from the archive
+cube = cd.load_prism_cube(
+    lat=40.0,
+    lon=-105.25,
+    start="2000-01-01",
+    end="2020-12-31",
+    variable="ppt",
 )
 
-# 2. Run a pipe chain that computes anomalies, filters months, and gets variance
-result = (
-    pipe(cube)
-    | v.anomaly(dim="time")
-    | v.month_filter([6, 7, 8])
+# Compute June–August variance directly through the pipe
+pipe(cube) \
+    | v.month_filter([6, 7, 8]) \
     | v.variance(dim="time")
-).unwrap()
-
-print("Variance of anomalies over JJA:", float(result.values))
 ```
+
+### Pipe ergonomics
+
+- `pipe(value)` wraps any `xarray.DataArray` or `xarray.Dataset` without copying it.
+- Apply verbs with `| v.verb_name(...)`. Each verb is a callable defined in `cubedynamics.verbs`.
+- In notebooks, the last `Pipe` expression in a cell auto-displays the inner `xarray` object, so calling `.unwrap()` is optional unless you need the object immediately.
+
+The same pattern works for gridMET via `cd.load_gridmet_cube(...)`, Sentinel-2 NDVI through `cd.load_s2_ndvi_cube(...)`, and any custom `xarray` object you create.
 
 ### Example: stream a gridMET cube for Boulder, CO
 
@@ -68,9 +52,6 @@ The streaming helpers work the same way as the in-memory example above. Define a
 can flow directly into the pipe system.
 
 ```python
-import numpy as np
-import pandas as pd
-import xarray as xr
 import cubedynamics as cd
 from cubedynamics import pipe, verbs as v
 
@@ -91,7 +72,7 @@ boulder_aoi = {
 }
 
 # Stream a monthly gridMET precipitation cube for Boulder
-cube = cd.stream_gridmet_to_cube(
+cube = cd.load_gridmet_cube(
     aoi_geojson=boulder_aoi,
     variable="pr",
     start="2000-01-01",
@@ -100,19 +81,8 @@ cube = cd.stream_gridmet_to_cube(
     chunks={"time": 120},
 )
 
-cube
-```
-
-Feed that cube into the pipe system to compute JJA variance in a single chain:
-
-```python
-jja_var = (
-    pipe(cube)
-    | v.month_filter([6, 7, 8])
-    | v.variance(dim="time")
-).unwrap()
-
-jja_var
+# Feed directly into the pipe to compute JJA variance
+pipe(cube) | v.month_filter([6, 7, 8]) | v.variance(dim="time")
 ```
 
 ### Example: Sentinel-2 NDVI z-score cube via pipes
@@ -153,29 +123,45 @@ ndvi_z = (
     pipe(s2)
     | v.ndvi_from_s2(nir_band="B08", red_band="B04")
     | v.zscore(dim="time")
-).unwrap()
+)
 
 ndvi_z
 ```
 
-### Using the pipe system
+### Interactive Lexcube visualization
 
-- `pipe(value)` wraps an `xarray` object in a `Pipe` so it can be chained.
-- Import verbs via `from cubedynamics import verbs as v`. Calling `v.anomaly(dim="time")` returns a callable for the pipe.
-- The `|` operator forwards the wrapped cube through each verb in sequence.
-- `.unwrap()` returns the final `xarray` object so you can inspect the result or continue working outside the pipe.
+CubeDynamics integrates with [Lexcube](https://github.com/carbonplan/lexcube) to provide interactive 3D exploration of `(time, y, x)` cubes. Call the helper directly or use the pipe verb:
+
+```python
+from cubedynamics import pipe, verbs as v
+import cubedynamics as cd
+
+cube = cd.load_gridmet_cube(
+    lat=40.0,
+    lon=-105.25,
+    start="2000-01-01",
+    end="2020-12-31",
+    variable="pr",
+)
+
+# JJA cube + Lexcube widget
+pipe(cube) | v.month_filter([6, 7, 8]) | v.show_cube_lexcube(cmap="RdBu_r")
+
+# Functional helper outside of a pipe
+cd.show_cube_lexcube(cube, cmap="RdBu_r")
+```
+
+Lexcube widgets require a live Python environment (Jupyter, Colab, Binder). They do not execute on the static GitHub Pages site.
 
 ## API Overview
 
-- `pipe`
-- `verbs` (``from cubedynamics import verbs as v``)
-- `anomaly`
-- `month_filter`
-- `variance`
-- `zscore`
-- `ndvi_from_s2`
-- `correlation_cube` (stub)
-- `to_netcdf`
+- `pipe` for wrapping any cube before piping.
+- `verbs` (``from cubedynamics import verbs as v``) exposes transforms, statistics, IO, and visualization helpers.
+- Streaming helpers: `cd.load_prism_cube`, `cd.load_gridmet_cube`, `cd.load_s2_cube`, `cd.load_s2_ndvi_cube`.
+- Vegetation helper: `v.ndvi_from_s2` for direct NDVI calculation on Sentinel-2 cubes.
+- Stats verbs: `v.anomaly`, `v.month_filter`, `v.variance`, `v.zscore`, `v.correlation_cube`, and more under `cubedynamics.ops.*`.
+- IO verbs: `v.to_netcdf`, `v.to_zarr`, etc.
+- Visualization verbs/helpers: `v.show_cube_lexcube` and `cd.show_cube_lexcube` for interactive exploration.
 
 More verbs live under `cubedynamics.ops.transforms`, `cubedynamics.ops.stats`, and `cubedynamics.ops.io` and are re-exported via `cubedynamics.verbs`. Each verb returns a callable object that receives the upstream cube when used inside a pipe chain.
 

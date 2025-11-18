@@ -7,7 +7,7 @@ of the math stack can focus on statistics instead of I/O details.
 
 ## Sentinel-2
 
-* Loader: `cubedynamics.stream_sentinel2_to_cube`
+* Loader: `cubedynamics.load_s2_cube` / `cubedynamics.load_s2_ndvi_cube`
 * Purpose: multispectral reflectance for vegetation index and QA work.
 * Typical recipe: compute NDVI with `cubedynamics.verbs.ndvi_from_s2` and then
   derive z-scores or temporal anomalies with `cubedynamics.verbs.zscore` or the
@@ -15,16 +15,17 @@ of the math stack can focus on statistics instead of I/O details.
 
 ## GRIDMET
 
-* Loader: `cubedynamics.stream_gridmet_to_cube`
+* Loader: `cubedynamics.load_gridmet_cube`
 * Purpose: daily meteorological drivers (temperature, precipitation, etc.).
 * Streaming-first design: attempts to return a lazily-evaluated cube, falling
   back to an in-memory download only when streaming is not available.
 
 ```python
-from cubedynamics import stream_gridmet_to_cube, pipe, verbs as v
+import cubedynamics as cd
+from cubedynamics import pipe, verbs as v
 
 # Assume boulder_aoi is defined as in the Boulder example
-precip = stream_gridmet_to_cube(
+precip = cd.load_gridmet_cube(
     aoi_geojson=boulder_aoi,
     variable="pr",
     start="2000-01-01",
@@ -33,17 +34,18 @@ precip = stream_gridmet_to_cube(
     chunks={"time": 120},
 )
 
-pr_z = (pipe(precip) | v.zscore(dim="time")).unwrap()
+pr_z = pipe(precip) | v.zscore(dim="time")
 ```
 
 ## PRISM
 
-* Loader: `cubedynamics.stream_prism_to_cube`
+* Loader: `cubedynamics.load_prism_cube`
 * Purpose: high-resolution precipitation and temperature summaries.
 * Uses the same streaming-first contract as GRIDMET.
 
 ```python
-from cubedynamics import stream_prism_to_cube, pipe, verbs as v
+import cubedynamics as cd
+from cubedynamics import pipe, verbs as v
 
 aoi = {
     "min_lon": -105.4,
@@ -52,15 +54,13 @@ aoi = {
     "max_lat": 40.1,
 }
 
-prism = stream_prism_to_cube(
-    variables=["ppt"],
+prism = cd.load_prism_cube(
     start="2000-01-01",
     end="2000-12-31",
     aoi=aoi,
-    prefer_streaming=True,
 )
 
-ppt_z = (pipe(prism["ppt"]) | v.zscore(dim="time")).unwrap()
+ppt_z = pipe(prism["ppt"]) | v.zscore(dim="time")
 ```
 
 Each loader keeps the cube streaming whenever possible, emits a warning when

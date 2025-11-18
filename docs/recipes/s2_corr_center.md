@@ -12,14 +12,13 @@ Steps:
 4. Visualize with Lexcube and inspect QA summaries.
 
 ```python
-from cubedynamics.data.sentinel2 import load_s2_cube
+import cubedynamics as cd
 from cubedynamics import pipe, verbs as v
 from cubedynamics.stats.correlation import rolling_corr_vs_center
 from cubedynamics.utils.chunking import coarsen_and_stride
-from cubedynamics.viz.lexcube_viz import show_cube_lexcube
 from cubedynamics.viz.qa_plots import plot_median_over_space
 
-s2 = load_s2_cube(
+s2 = cd.load_s2_cube(
     lat=43.89,
     lon=-102.18,
     start="2023-06-01",
@@ -33,7 +32,7 @@ ndvi_z = (
     pipe(s2)
     | v.ndvi_from_s2()
     | v.zscore(dim="time")
-).unwrap()
+)
 
 # Downsample for performance
 ndvi_z_ds = coarsen_and_stride(ndvi_z, coarsen_factor=4, time_stride=2)
@@ -46,15 +45,13 @@ corr_cube = rolling_corr_vs_center(
 )
 
 # Lexcube visualization of correlation cube
-corr_widget = show_cube_lexcube(
-    corr_cube.clip(-1, 1),
+corr_clip = corr_cube.clip(-1, 1)
+pipe(corr_clip) | v.show_cube_lexcube(
     title="Rolling correlation vs center pixel (NDVI z-scores)",
     cmap="RdBu_r",
     vmin=-1,
     vmax=1,
 )
-
-# In a notebook: corr_widget.plot()
 
 # QA: median correlation over space
 ax = plot_median_over_space(
