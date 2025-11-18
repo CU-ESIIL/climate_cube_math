@@ -62,6 +62,58 @@ result = (
 print("Variance of anomalies over JJA:", float(result.values))
 ```
 
+### Example: stream a gridMET cube for Boulder, CO
+
+The streaming helpers work the same way as the in-memory example above. Define an AOI, call the loader, and the resulting cube
+can flow directly into the pipe system.
+
+```python
+import numpy as np
+import pandas as pd
+import xarray as xr
+import cubedynamics as cd
+
+# Define a rough AOI around Boulder, CO (lon/lat pairs in EPSG:4326)
+boulder_aoi = {
+    "type": "Feature",
+    "properties": {"name": "Boulder, CO"},
+    "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+            [-105.35, 40.00],  # SW
+            [-105.35, 40.10],  # NW
+            [-105.20, 40.10],  # NE
+            [-105.20, 40.00],  # SE
+            [-105.35, 40.00],  # back to SW
+        ]],
+    },
+}
+
+# Stream a monthly gridMET precipitation cube for Boulder
+cube = cd.stream_gridmet_to_cube(
+    aoi_geojson=boulder_aoi,
+    variable="pr",
+    start="2000-01-01",
+    end="2020-12-31",
+    freq="MS",
+    chunks={"time": 120},
+)
+
+cube
+```
+
+Feed that cube into the pipe system to compute JJA variance in a single chain:
+
+```python
+jja_var = (
+    cd.pipe(cube)
+    | cd.month_filter([6, 7, 8])
+    | cd.variance(dim="time")
+).unwrap()
+
+jja_var
+```
+
 ### Using the pipe system
 
 - `cd.pipe(value)` wraps an `xarray` object in a `Pipe` so it can be chained.

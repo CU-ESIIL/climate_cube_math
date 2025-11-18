@@ -9,10 +9,14 @@ dimensions) produced by the streaming loaders.
 ```python
 from cubedynamics import stream_gridmet_to_cube
 
+# Assume boulder_aoi is defined as in the Boulder example
 cube = stream_gridmet_to_cube(
-    aoi_geojson,
-    variable="tmmx",
-    dates=("2010-01-01", "2020-12-31"),
+    aoi_geojson=boulder_aoi,
+    variable="pr",
+    start="2000-01-01",
+    end="2020-12-31",
+    freq="MS",
+    chunks={"time": 120},
 )
 print(cube.dims)
 ```

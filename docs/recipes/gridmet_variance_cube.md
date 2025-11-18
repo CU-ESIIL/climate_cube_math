@@ -9,22 +9,29 @@ from cubedynamics.stats.anomalies import temporal_anomaly, zscore_over_time
 from cubedynamics.stats.spatial import spatial_coarsen_mean
 from cubedynamics.viz.qa_plots import plot_median_over_space
 
-aoi = {
-    "min_lon": -105.4,
-    "max_lon": -105.3,
-    "min_lat": 40.0,
-    "max_lat": 40.1,
+boulder_aoi = {
+    "type": "Feature",
+    "properties": {"name": "Boulder, CO"},
+    "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+            [-105.35, 40.00],
+            [-105.35, 40.10],
+            [-105.20, 40.10],
+            [-105.20, 40.00],
+            [-105.35, 40.00],
+        ]],
+    },
 }
 
-gridmet = stream_gridmet_to_cube(
-    variables=["tmax"],
+tmax = stream_gridmet_to_cube(
+    aoi_geojson=boulder_aoi,
+    variable="tmmx",
     start="2000-01-01",
-    end="2000-12-31",
-    aoi=aoi,
-    prefer_streaming=True,
+    end="2020-12-31",
+    freq="MS",
+    chunks={"time": 120},
 )
-
-tmax = gridmet["tmax"]
 tmax_anom = temporal_anomaly(tmax, dim="time")
 tmax_z = zscore_over_time(tmax_anom)
 

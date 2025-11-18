@@ -24,22 +24,17 @@ of the math stack can focus on statistics instead of I/O details.
 from cubedynamics import stream_gridmet_to_cube
 from cubedynamics.stats.anomalies import zscore_over_time
 
-aoi = {
-    "min_lon": -105.4,
-    "max_lon": -105.3,
-    "min_lat": 40.0,
-    "max_lat": 40.1,
-}
-
-gridmet = stream_gridmet_to_cube(
-    variables=["tmax"],
+# Assume boulder_aoi is defined as in the Boulder example
+precip = stream_gridmet_to_cube(
+    aoi_geojson=boulder_aoi,
+    variable="pr",
     start="2000-01-01",
-    end="2000-12-31",
-    aoi=aoi,
-    prefer_streaming=True,
+    end="2020-12-31",
+    freq="MS",
+    chunks={"time": 120},
 )
 
-tmax_z = zscore_over_time(gridmet["tmax"])
+pr_z = zscore_over_time(precip)
 ```
 
 ## PRISM

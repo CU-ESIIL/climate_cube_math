@@ -62,3 +62,53 @@ This pipeline is dimension-agnostic—the verbs accept any axes you provide. The
 - Read the [Pipe Syntax & Verbs](pipe_syntax.md) page for more callables such as `month_filter`, `to_netcdf`, and how to author your own verbs.
 - Explore future climate streaming examples (PRISM/gridMET/NDVI) as they land in the docs and notebooks.
 - Run the full [CubeDynamics Quickstart notebook](https://github.com/CU-ESIIL/climate_cube_math/blob/main/notebooks/quickstart_cubedynamics.ipynb) for a ready-made walkthrough that matches this guide.
+
+## Streaming a gridMET cube for Boulder, CO
+
+Copy/paste the snippet below into a notebook cell to stream a monthly precipitation cube straight into `xarray`:
+
+```python
+import numpy as np
+import pandas as pd
+import xarray as xr
+import cubedynamics as cd
+
+# Define a rough AOI around Boulder, CO (lon/lat pairs in EPSG:4326)
+boulder_aoi = {
+    "type": "Feature",
+    "properties": {"name": "Boulder, CO"},
+    "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+            [-105.35, 40.00],  # SW
+            [-105.35, 40.10],  # NW
+            [-105.20, 40.10],  # NE
+            [-105.20, 40.00],  # SE
+            [-105.35, 40.00],  # back to SW
+        ]],
+    },
+}
+
+cube = cd.stream_gridmet_to_cube(
+    aoi_geojson=boulder_aoi,
+    variable="pr",
+    start="2000-01-01",
+    end="2020-12-31",
+    freq="MS",
+    chunks={"time": 120},
+)
+
+cube
+```
+
+Use the cube inside a pipe chain immediately:
+
+```python
+jja_var = (
+    cd.pipe(cube)
+    | cd.month_filter([6, 7, 8])
+    | cd.variance(dim="time")
+).unwrap()
+
+jja_var
+```
