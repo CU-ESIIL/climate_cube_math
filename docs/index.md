@@ -1,6 +1,112 @@
 # CubeDynamics home
 
 **In plain English:**  
+CubeDynamics helps you load climate and NDVI grids as tidy "cubes" and process them with readable pipe steps. The new VirtualCube system streams huge requests so you can handle decades of data without running out of memory. You get simple examples up front and deeper debugging notes if you ever need them.
+
+**What this page helps you do:**  
+- Understand the CubeDynamics mindset
+- See how streaming with VirtualCube works in practice
+- Find examples, verbs, and debugging tips for large cubes
+
+## CubeDynamics in one minute
+
+CubeDynamics wraps `xarray` DataArrays/Datasets with a light `pipe(cube)` helper. You then chain verbs such as `v.anomaly` or `v.mean` using the `|` operator. The cube keeps its shape `(time, y, x [, band])`, and you keep readable notebooks.
+
+```python
+import cubedynamics as cd
+from cubedynamics import pipe, verbs as v
+
+ndvi = cd.ndvi(
+    lat=40.0,
+    lon=-105.25,
+    start="1970-01-01",
+    end="2020-12-31",
+)
+
+# Even though this is a 50-year request, it streams under the hood
+trend = pipe(ndvi) | v.mean(dim=("y", "x"))
+```
+
+You do not have to toggle anything for large requests—VirtualCube starts streaming tiles automatically.
+
+## Why VirtualCube exists
+
+Large AOIs or long time ranges used to require careful chunking. VirtualCube now slices requests into time and spatial tiles automatically. Each tile is processed and combined, so memory stays small while you keep the same pipe + verbs syntax.
+
+Behind the scenes:
+- When a cube is very large, CubeDynamics switches to a streaming VirtualCube.
+- The request is split into small tiles across time and/or space.
+- Each tile flows through the verbs, incremental statistics are tracked, and the final result looks like any other cube.
+
+## Working With Large Datasets (New in 2025)
+
+CubeDynamics can now work with extremely large climate or NDVI datasets — 
+even decades of data or very large spatial areas — without loading everything 
+into memory at once.
+
+It does this using a new system called **VirtualCube**, which streams data in 
+small 'tiles'. You can think of these tiles as puzzle pieces. CubeDynamics 
+processes each piece, keeps track of running statistics, and never holds the 
+whole puzzle in memory.
+
+## A quick streaming walkthrough
+
+```python
+import cubedynamics as cd
+from cubedynamics import pipe, verbs as v
+
+# Request a continental-scale NDVI cube
+ndvi_big = cd.ndvi(
+    bbox=[-125.0, 24.0, -66.5, 49.5],
+    start="1985-01-01",
+    end="2024-12-31",
+)
+
+# Compute a streaming variance over space
+variance_ts = pipe(ndvi_big) | v.variance(dim=("y", "x"))
+
+# Visualize the time series without materializing the entire cube
+pipe(variance_ts) | v.plot_timeseries()
+```
+
+The code mirrors small-cube examples. VirtualCube handles tiling so the variance runs in memory-safe chunks.
+
+## How to force or inspect streaming
+
+Most users never need to touch these options, but they are here when you want to debug:
+
+```python
+# Force streaming mode
+ndvi_stream = cd.ndvi(lat=40.0, lon=-105.25, start="1970", end="2020", streaming_strategy="virtual")
+print(ndvi_stream)  # shows tile metadata
+ndvi_stream.debug_tiles()  # print tile boundaries
+
+# Force materialization (loads everything; use with caution)
+ndvi_materialized = ndvi_stream.materialize()
+```
+
+Use smaller `time_tile` or `spatial_tile` arguments when you see memory pressure or slow progress.
+
+## Debugging a VirtualCube request
+
+- Call `debug_tiles()` to see time and spatial tile boundaries.
+- Pass `streaming_strategy="virtual"` to loaders to confirm streaming is active.
+- Use `.materialize()` only when you genuinely need the full cube in memory.
+- When plotting large cubes, CubeDynamics streams tiles to the plotting verb; if you hit rate limits, reduce the date span.
+- Check provider limits and your network speed when performance feels slow.
+
+## Learn more
+
+- [Virtual Cubes](virtual_cubes.md) explains the tiling model and shows more code.
+- [Streaming Large Data](streaming_large_data.md) covers when streaming activates and how to debug.
+- [Semantic Variable Loaders](semantic_variables.md) gives quick access to NDVI and temperature variables without memorizing provider names.
+
+---
+
+## Legacy Technical Reference (kept for context)
+# CubeDynamics home
+
+**In plain English:**  
 This site shows how to load climate data as easy-to-think-about cubes and process them with simple pipe verbs.
 You will see plain-language guides, code snippets, and the original technical notes for deeper reference.
 

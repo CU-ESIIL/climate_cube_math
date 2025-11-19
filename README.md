@@ -1,6 +1,90 @@
 # CubeDynamics (`cubedynamics`)
 
 **In plain English:**  
+CubeDynamics turns climate and NDVI rasters into tidy cubes. You load a cube, pass it into a pipe, and chain small verbs to filter, summarize, visualize, and now stream huge datasets through the new VirtualCube system.
+
+**What this page helps you do:**  
+- Install CubeDynamics quickly
+- Run first examples with pipe + verbs
+- Learn how VirtualCube streams massive cubes safely
+
+## What this is
+
+CubeDynamics is a friendly Python library that turns climate rasters into simple 3-D cubes. A cube is just a stack of maps through time, usually with dimensions `(time, y, x)` and sometimes a `band` axis. The pipe grammar keeps notebooks readable: `pipe(cube) | v.month_filter(...) | v.variance(...)`.
+
+## Streaming Massive Climate & NDVI Datasets (New in 2025)
+
+CubeDynamics now supports true streaming of extremely large datasets through a 
+component called `VirtualCube`. This means you can load 40–60+ years of climate 
+data or continental-scale NDVI without running out of memory.
+
+For example:
+
+```python
+ndvi = cd.ndvi(lat=40.0, lon=-105.25, start="1970", end="2020")
+ts = pipe(ndvi) | v.mean(dim=("y","x"))
+```
+Even if this dataset is huge, the code stays the same. CubeDynamics streams the
+data tile by tile, handles incremental statistics, and returns a normal
+DataArray.
+
+## Why it matters
+
+Students, land managers, and researchers often need climate summaries without fighting file formats. CubeDynamics streams data from PRISM, gridMET, and Sentinel-2 so you can compute anomalies or greenness trends on a laptop. VirtualCube keeps this possible even for continent-scale pulls.
+
+## How to use it
+
+Install from PyPI or GitHub, then build a small pipeline.
+
+```bash
+pip install cubedynamics
+# or grab the freshest commits
+pip install "git+https://github.com/CU-ESIIL/climate_cube_math.git@main"
+```
+
+```python
+import cubedynamics as cd
+from cubedynamics import pipe, verbs as v
+
+# Load daily PRISM precipitation for a point near Boulder, CO
+ppt = cd.load_prism_cube(
+    lat=40.0,
+    lon=-105.25,
+    start="2000-01-01",
+    end="2020-12-31",
+    variable="ppt",
+)
+
+pipe(ppt) | v.anomaly(dim="time") | v.month_filter([6, 7, 8]) | v.variance(dim="time")
+```
+
+Need to inspect tiles?
+
+```python
+ppt_stream = cd.load_prism_cube(..., streaming_strategy="virtual", time_tile="5y")
+ppt_stream.debug_tiles()
+```
+
+## Debugging a VirtualCube Request
+
+If something seems slow or unexpected, try:
+
+```python
+ndvi = cd.ndvi(..., streaming_strategy="virtual")
+print(ndvi)
+ndvi.debug_tiles()    # inspect tiles
+
+ndvi.materialize()    # WARNING: loads entire dataset into memory
+```
+
+Tile sizes, time chunk configuration, and spatial tile configuration are printed by `debug_tiles()`. Shrink them if you see memory pressure or provider rate limits.
+
+---
+
+## Legacy Technical Reference (kept for context)
+# CubeDynamics (`cubedynamics`)
+
+**In plain English:**  
 CubeDynamics helps you work with climate and remote-sensing data as tidy "cubes" of time, latitude, and longitude.
 You load a cube, pass it into a pipe, and chain small verbs to filter, summarize, and visualize without downloading giant archives.
 
