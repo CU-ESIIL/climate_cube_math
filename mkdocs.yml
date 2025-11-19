@@ -5,15 +5,28 @@ site_url: "https://cu-esiil.github.io/climate_cube_math/"
 
 nav:
   - Home: index.md
-  - Getting Started: getting_started.md
-  - Pipe Syntax & Verbs: pipe_syntax.md
-  - Lexcube Integration: lexcube.md
-  - Operations Reference:
-      - Transforms: ops_transforms.md
-      - Stats: ops_stats.md
-      - IO Functions: ops_io.md
-  - Development: development.md
-  - Changelog: changelog.md
+  - Concepts:
+      - What is a cube?: concepts/cubes.md
+      - Pipe syntax & verbs: concepts/pipe_and_verbs.md
+  - Getting Started:
+      - Installation & setup: getting_started/install.md
+      - First cube (PRISM): getting_started/first_prism_cube.md
+  - Examples & Recipes:
+      - PRISM JJA variance: examples/prism_jja_variance.md
+      - gridMET AOI variance: examples/gridmet_aoi_variance.md
+      - Sentinel-2 NDVI z-score: examples/s2_ndvi_zscore.md
+      - Climate–NDVI correlation cube: examples/climate_ndvi_correlation.md
+  - Verbs Reference:
+      - Transform verbs: reference/verbs_transforms.md
+      - Stats verbs: reference/verbs_stats.md
+      - IO verbs: reference/verbs_io.md
+      - Visualization verbs: reference/verbs_viz.md
+      - Models (coming soon): reference/verbs_models.md
+  - Related Work & Ecosystem: related/related_work.md
+  - Development:
+      - Contributing: dev/contributing.md
+      - Roadmap: dev/roadmap.md
+      - Changelog: dev/changelog.md
 
 repo_url: https://github.com/CU-ESIIL/climate_cube_math
 edit_uri: edit/main/docs/
@@ -24,24 +37,16 @@ theme:
   name: material
   language: en
   features:
-    - navigation.instant
-    - navigation.tracking
-    - navigation.top
-    - toc.follow
+    - navigation.sections
+    - navigation.expand
     - content.code.copy
   palette:
     - scheme: default
-      primary: teal
-      accent: teal
-    - scheme: slate
-      primary: teal
-      accent: teal
-      toggle:
-        icon: material/weather-sunny
-        name: Switch to light mode
+      primary: "#1f3b74"
+      accent: "#ff8c42"
 
 extra_css:
-  - stylesheets/extra.css
+  - css/extra.css
 
 plugins:
   - search
