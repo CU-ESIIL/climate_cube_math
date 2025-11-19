@@ -1,6 +1,41 @@
 # Lexcube integration
 
 **In plain English:**  
+Lexcube lets you explore cubes interactively in the browser. VirtualCube keeps this experience smooth for large datasets by streaming tiles to the viewer instead of loading everything at once.
+
+**What this page helps you do:**  
+- Send cubes (including VirtualCubes) into Lexcube
+- Understand how streaming affects visualization
+- Debug slow loads or tiling issues
+
+## Quick Lexcube stream
+
+```python
+from cubedynamics import pipe, verbs as v
+
+lex = pipe(cube) | v.show_cube_lexcube(title="Streaming cube view")
+```
+
+If `cube` is huge, Lexcube requests tiles on demand. You see updates as each tile finishes processing.
+
+## Visualization tips for large data
+
+- Keep `time_tile` reasonable when sending 40+ years of data to Lexcube.
+- If the AOI is wide, expect Lexcube to fetch spatial tiles separately.
+- Use `v.plot_timeseries()` for quick summaries before opening a full Lexcube view.
+
+## Debugging Lexcube with VirtualCube
+
+- Call `.debug_tiles()` on the source cube to understand the request pattern.
+- Watch provider rate limits; large visualization requests may queue tiles.
+- For small validation checks, call `.materialize()` and view a subset first.
+
+---
+
+## Legacy Technical Reference (kept for context)
+# Lexcube integration
+
+**In plain English:**  
 Lexcube is an interactive viewer for `(time, y, x)` cubes.
 CubeDynamics includes verbs and helpers so you can send a cube to Lexcube with one line and keep working.
 

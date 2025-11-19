@@ -1,6 +1,73 @@
 # Climate cubes
 
 **In plain English:**  
+Climate cubes are gridded datasets (like PRISM or gridMET) arranged as time, latitude, and longitude. CubeDynamics loads them with one line and now streams massive requests through VirtualCube so you can study whole decades safely.
+
+**What this page helps you do:**  
+- Understand what a climate cube is and how to load one
+- See how streaming tiles keep memory low on big pulls
+- Debug and visualize very large climate cubes
+
+## Climate cubes in practice
+
+```python
+import cubedynamics as cd
+from cubedynamics import pipe, verbs as v
+
+daily_temp = cd.load_prism_cube(
+    lat=40.0,
+    lon=-105.25,
+    start="1980-01-01",
+    end="2020-12-31",
+    variable="tmean",
+)
+
+# Stream a long-term spatial average without extra code
+spatial_mean = pipe(daily_temp) | v.mean(dim=("y", "x"))
+```
+
+Even though this request covers 40+ years, CubeDynamics tiles it automatically.
+
+## Working With Large Datasets (New in 2025)
+
+CubeDynamics can now work with extremely large climate or NDVI datasets — 
+even decades of data or very large spatial areas — without loading everything 
+into memory at once.
+
+It does this using a new system called **VirtualCube**, which streams data in 
+small 'tiles'. You can think of these tiles as puzzle pieces. CubeDynamics 
+processes each piece, keeps track of running statistics, and never holds the 
+whole puzzle in memory.
+
+## Behind the scenes: climate cubes and tiles
+
+- **Time tiles**: Long spans are split into year or multi-year windows. Running statistics mean you still get a single output array.
+- **Spatial tiles**: Very wide bounding boxes are broken into smaller rectangles. Each tile is downloaded and processed, then merged.
+- **Same verbs**: `v.anomaly`, `v.variance`, and other reductions work the same because they update incremental stats as tiles arrive.
+
+## Visualization and streaming
+
+Plotting verbs stream tiles into the figure rather than loading everything. For example:
+
+```python
+pipe(daily_temp) | v.variance(dim="time") | v.plot_timeseries()
+```
+
+If the AOI is continental, expect the plot to update after each tile finishes; reduce the date span to speed it up.
+
+## Debugging climate cube streaming
+
+- Force streaming: `cd.load_prism_cube(..., streaming_strategy="virtual")`
+- Inspect tiles: call `.debug_tiles()` on the returned cube.
+- Force full load: `.materialize()` (use only on small AOIs).
+- Adjust tiles: pass `time_tile` or `spatial_tile` to loaders to shrink chunks.
+
+---
+
+## Legacy Technical Reference (kept for context)
+# Climate cubes
+
+**In plain English:**  
 A climate cube is a stack of maps through time, usually arranged as `(time, y, x)` with an optional `band` axis.
 CubeDynamics loads these cubes for you so you can analyze them with clear, chained verbs.
 
