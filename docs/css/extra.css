@@ -1,0 +1,66 @@
+/* Extra styling for CubeDynamics site */
+
+:root {
+  --cube-accent: #1f3b74;
+}
+
+body {
+  background-color: #f5f5f7;
+}
+
+/* Buttons */
+.md-button {
+  transition: transform 0.1s ease, box-shadow 0.1s ease, background-color 0.1s ease;
+}
+
+.md-button--primary {
+  font-weight: 600;
+  background-color: #1f3b74;
+  color: #ffffff;
+}
+
+/* Hover effects for buttons */
+.md-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
+}
+
+/* Cards / callout boxes */
+.cube-card {
+  border-radius: 0.75rem;
+  padding: 1.25rem 1.5rem;
+  margin: 1.5rem 0;
+  background-color: #f5f5f7;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(31, 59, 116, 0.08);
+}
+
+.cube-card h3 {
+  margin-top: 0;
+  color: #1f3b74;
+}
+
+/* Make images look nicer */
+.cube-image {
+  border-radius: 0.5rem;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.16);
+  margin: 1rem 0;
+}
+
+/* Slightly larger code blocks */
+.md-typeset code {
+  font-size: 0.92em;
+  background-color: rgba(31, 59, 116, 0.05);
+  border-radius: 4px;
+  padding: 0.05rem 0.35rem;
+}
+
+/* Carry over legacy heading & image styles */
+.md-typeset h1 {
+  color: var(--cube-accent);
+}
+
+.md-content img {
+  border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
