@@ -2,15 +2,16 @@
 
 from __future__ import annotations
 
+import cubedynamics.viz as viz
 import xarray as xr
 from IPython.display import display
 
-from .. import viz
 from ..config import TIME_DIM, X_DIM, Y_DIM
 from ..ops.io import to_netcdf
 from ..ops.ndvi import ndvi_from_s2
 from ..ops.stats import correlation_cube
 from ..ops.transforms import month_filter
+from ..ops.viz import plot
 from .custom import apply
 from .flatten import flatten_cube, flatten_space
 from .models import fit_model
@@ -69,4 +70,5 @@ __all__ = [
     "ndvi_from_s2",
     "show_cube_lexcube",
     "fit_model",
+    "plot",
 ]
