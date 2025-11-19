@@ -45,7 +45,7 @@ visualizations consume.
 import cubedynamics as cd
 from cubedynamics import pipe, verbs as v
 
-s2 = cd.load_s2_cube(
+s2 = cd.load_sentinel2_cube(
     lat=43.89,
     lon=-102.18,
     start="2023-06-01",

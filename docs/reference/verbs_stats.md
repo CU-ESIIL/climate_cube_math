@@ -2,62 +2,53 @@
 
 Statistic verbs summarize cubes along dimensions or compare axes. They live in `cubedynamics.verbs` and accept whatever `xarray` object flows through the pipe.
 
-### `v.variance(dim)`
+### `v.mean(dim="time", keep_dim=True)`
 
-Computes the variance along a dimension.
+Compute the mean along a dimension.
 
 ```python
 from cubedynamics import pipe, verbs as v
 
-result = pipe(cube) | v.variance(dim="time")
+mean_cube = pipe(cube) | v.mean(dim="time", keep_dim=True)
 ```
 
-- **Parameters**: `dim` – dimension to collapse.
-- **Returns**: variance cube with the target dimension removed (or reduced) according to `xarray` semantics.
+- **Parameters**: `dim` – dimension to summarize; `keep_dim` – retain the dimension as length 1 so the result stays `(time, y, x)` and Lexcube-ready.
+- **Notes**: When `keep_dim=False`, the reduced dimension is removed entirely.
+
+### `v.variance(dim="time", keep_dim=True)`
+
+Compute the variance along a dimension.
+
+```python
+from cubedynamics import pipe, verbs as v
+
+var_cube = pipe(cube) | v.variance(dim="time", keep_dim=True)
+```
+
+- **Parameters**: `dim` – dimension to collapse; `keep_dim` – retain the reduced axis (length 1) or drop it.
+- **Returns**: variance cube matching the input layout when `keep_dim=True`.
 
 ### `v.zscore(dim="time", std_eps=1e-4)`
 
-Standardizes each pixel/voxel along a dimension by subtracting the mean and dividing by the standard deviation.
+Standardizes each pixel/voxel along a dimension by subtracting the mean and dividing by the standard deviation. The verb always returns the same shape as the input cube so downstream visualization works without extra reshaping.
 
 ```python
 z = pipe(cube) | v.zscore(dim="time")
 ```
 
-- **Parameters**: `dim`, `std_eps` – same semantics as `xarray.apply_ufunc` safeguards.
-- **Notes**: Use `std_eps` to avoid division by near-zero spread.
+- **Parameters**: `dim`, `std_eps` – same semantics as `xarray` reductions. `std_eps` prevents division by near-zero spread.
+- **Notes**: Keeps the original cube shape regardless of `keep_dim`.
 
-### `v.correlation_cube(other, dim="time")`
+### `v.correlation_cube(other, dim="time")` (planned)
 
-Correlate the pipeline cube with another cube along a shared dimension.
-
-```python
-corr = (
-    pipe(ndvi_z)
-    | v.correlation_cube(climate_anom, dim="time")
-).unwrap()
-```
-
-- **Parameters**: `other` – reference cube or DataArray; `dim` – alignment dimension.
-- **Notes**: Accepts Datasets/DataArrays; returns coefficients per pixel.
-
-### `v.rolling_corr_vs_center(window_days, min_t)`
-
-Rolling Pearson correlation versus an anchor pixel (usually the spatial center).
+`v.correlation_cube` currently raises `NotImplementedError` and is reserved for a future streaming implementation. Use `xr.corr` or the rolling helpers under `cubedynamics.stats` today:
 
 ```python
-rolling = pipe(ndvi_z) | v.rolling_corr_vs_center(window_days=90, min_t=5)
+import xarray as xr
+
+corr = xr.corr(ndvi_z, climate_anom, dim="time")
 ```
 
-- **Notes**: Output cube stores correlations aligned to the rolling window center.
-
-### `v.rolling_tail_dep_vs_center(window_days, min_t, b=0.5)`
-
-Tail dependence between each pixel and the anchor across rolling windows.
-
-```python
-tails = pipe(ndvi_z) | v.rolling_tail_dep_vs_center(window_days=90, min_t=5, b=0.5)
-```
-
-- **Notes**: Returns bottom, top, and difference tail dependence cubes.
+Rolling synchrony functions such as `cubedynamics.rolling_corr_vs_center` and `cubedynamics.rolling_tail_dep_vs_center` live outside the verbs namespace.
 
 Use these stats alongside transform verbs to build climate–vegetation synchrony analyses.

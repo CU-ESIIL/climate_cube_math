@@ -16,7 +16,7 @@ prism_cube = cd.load_prism_cube(
     variable="ppt",
 )
 
-ndvi_z = cd.load_sentinel2_ndvi_cube(
+ndvi_z = cd.load_sentinel2_ndvi_zscore_cube(
     lat=40.0,
     lon=-105.25,
     start="2018-01-01",
@@ -30,29 +30,27 @@ ndvi_z = cd.load_sentinel2_ndvi_cube(
 climate_anom = (
     pipe(prism_cube)
     | v.anomaly(dim="time")
-).unwrap()
+).unwrap()["ppt"]
 ```
 
-## Compute correlation cube
+## Compute per-pixel correlations
 
 ```python
-corr = (
-    pipe(ndvi_z)
-    | v.correlation_cube(climate_anom, dim="time")
-).unwrap()
+import xarray as xr
+
+corr = xr.corr(ndvi_z, climate_anom, dim="time")
 ```
 
-The output stores correlation coefficients per pixel, aligned along the `time` coordinate (full-period or rolling depending on the configuration). Use it to spot areas where vegetation responds strongly to precipitation anomalies.
+The output stores Pearson coefficients per pixel along the shared `(y, x)` grid. Use it to spot areas where vegetation responds strongly to precipitation anomalies. The `v.correlation_cube` factory is reserved for a future streaming implementation and currently raises `NotImplementedError`.
 
 ## Rolling correlation vs anchor pixels
 
-`v.rolling_corr_vs_center` and `v.rolling_tail_dep_vs_center` extend the idea to within-cube synchrony (e.g., NDVI vs center pixel). They inherit the same pipe syntax:
+`cubedynamics.rolling_corr_vs_center` and `cubedynamics.rolling_tail_dep_vs_center` extend the idea to within-cube synchrony (e.g., NDVI vs center pixel). They operate on any `(time, y, x)` cube:
 
 ```python
-rolling = (
-    pipe(ndvi_z)
-    | v.rolling_corr_vs_center(window_days=90, min_t=5)
-)
+from cubedynamics import rolling_corr_vs_center
+
+rolling = rolling_corr_vs_center(ndvi_z, window_days=90, min_t=5)
 ```
 
 ## Related documentation

@@ -7,7 +7,7 @@ climate lexcubes:
    gridded datasets. Each returns `xarray.Dataset` objects with shared
    `(time, y, x)` axes.
 2. **Cube math primitives** – functions inside `cubedynamics.stats`,
-   `cubedynamics.indices`, and `cubedynamics.lexcubes` that compute anomalies,
+   `cubedynamics.indices`, and `cubedynamics.viz` that compute anomalies,
    correlations, and derived indicators.
 3. **Pipelines & exports** – recipes that connect cubes to dashboards or models
    (NetCDF/Zarr writers, QA plots, and asynchronous workflows).

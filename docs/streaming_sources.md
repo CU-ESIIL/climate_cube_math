@@ -38,27 +38,19 @@ public API.
 ```python
 import cubedynamics as cd
 
-boulder_aoi = {
-    "type": "Feature",
-    "properties": {"name": "Boulder, CO"},
-    "geometry": {
-        "type": "Polygon",
-        "coordinates": [[
-            [-105.35, 40.00],
-            [-105.35, 40.10],
-            [-105.20, 40.10],
-            [-105.20, 40.00],
-            [-105.35, 40.00],
-        ]],
-    },
+bbox = {
+    "min_lon": -105.35,
+    "max_lon": -105.20,
+    "min_lat": 40.00,
+    "max_lat": 40.10,
 }
 
 cube = cd.load_gridmet_cube(
-    aoi_geojson=boulder_aoi,
-    variable="pr",
+    variables=["pr"],
     start="2000-01-01",
     end="2020-12-31",
-    freq="MS",
+    aoi=bbox,
+    time_res="MS",
     chunks={"time": 120},
 )
 ```
@@ -95,44 +87,48 @@ s2_rgbn = cd.load_sentinel2_bands_cube(
 `load_sentinel2_bands_cube` helper enforces that the band subset is explicitly
 provided and raises ``ValueError`` when the list is empty.
 
-### NDVI anomaly (z-score) cube
+### NDVI cubes
 
 ```python
 import cubedynamics as cd
 from cubedynamics import pipe, verbs as v
 
-ndvi_z = cd.load_sentinel2_ndvi_cube(
+ndvi = cd.load_sentinel2_ndvi_cube(
     lat=40.0,
     lon=-105.25,
     start="2018-01-01",
     end="2020-12-31",
 )
 
-pipe(ndvi_z) | v.show_cube_lexcube(title="Sentinel-2 NDVI z-score")
+pipe(ndvi) | v.show_cube_lexcube(title="Sentinel-2 NDVI (raw)")
 ```
 
 `load_sentinel2_ndvi_cube` builds on the band loader to fetch B04/B08, computes
-NDVI, and runs `v.zscore(dim="time")` so the returned cube is standardized over
-time. Set ``return_raw=True`` to also grab the raw reflectance stack and
-intermediate NDVI cube. You can still manually reproduce the pipeline with
-`pipe(...) | v.ndvi_from_s2(...) | v.zscore(...)` if you need a different
-stacking order.
+NDVI, and returns raw reflectance in the physical range `[-1, 1]`. Set
+``return_raw=True`` to also grab the reflectance stack alongside the derived
+NDVI cube. You can still manually reproduce the pipeline with `pipe(...) |
+v.ndvi_from_s2(...)` if you need to adjust band names.
+
+Prefer anomalies out of the box? Call `cd.load_sentinel2_ndvi_zscore_cube(...)`
+to run `v.zscore(dim="time", keep_dim=True)` after NDVI so the output is a
+standardized `(time, y, x)` cube.
 
 The resulting cube highlights unusual greenness events (drought stress,
 disturbance, rapid recovery). Because every cube shares `(time, y, x)` axes, you
-can correlate NDVI anomalies with PRISM or gridMET cubes using
-`v.correlation_cube`:
+can correlate NDVI anomalies with PRISM or gridMET cubes via `xr.corr` while the
+`v.correlation_cube` factory is being implemented:
 
 ```python
-corr_cube = (
-    pipe(ndvi_z)
-    | v.correlation_cube(prism_anom_cube, dim="time")
-).unwrap()
+import xarray as xr
+
+ndvi_z = cd.load_sentinel2_ndvi_zscore_cube(...)
+per_pixel_corr = xr.corr(ndvi_z, prism_anom_cube["ppt"], dim="time")
 ```
 
 See also the [PRISM](recipes/prism_variance_cube.md) and
 [gridMET](recipes/gridmet_variance_cube.md) worked examples for climate-only
-pipelines.
+pipelines. The `v.correlation_cube` factory is still under development and
+currently raises `NotImplementedError`.
 
 ## Custom sources
 

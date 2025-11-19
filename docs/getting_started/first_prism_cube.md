@@ -39,27 +39,19 @@ Because `Pipe` implements `_repr_html_`, notebooks display the wrapped DataArray
 The same grammar applies to GRIDMET cubes. Stream a polygon AOI, filter to summer months, and compute variance:
 
 ```python
-boulder_aoi = {
-    "type": "Feature",
-    "properties": {"name": "Boulder, CO"},
-    "geometry": {
-        "type": "Polygon",
-        "coordinates": [[
-            [-105.35, 40.00],
-            [-105.35, 40.10],
-            [-105.20, 40.10],
-            [-105.20, 40.00],
-            [-105.35, 40.00],
-        ]],
-    },
+bbox = {
+    "min_lon": -105.35,
+    "max_lon": -105.20,
+    "min_lat": 40.00,
+    "max_lat": 40.10,
 }
 
 cube = cd.load_gridmet_cube(
-    aoi_geojson=boulder_aoi,
-    variable="pr",
+    variables=["pr"],
     start="2000-01-01",
     end="2020-12-31",
-    freq="MS",
+    aoi=bbox,
+    time_res="MS",
     chunks={"time": 120},
 )
 
@@ -68,6 +60,6 @@ pipe(cube) | v.month_filter([6, 7, 8]) | v.variance(dim="time")
 
 ## Next steps
 
-- Switch the loader to `cd.load_sentinel2_ndvi_cube` and chain `v.ndvi_from_s2()` → `v.zscore(dim="time")` for vegetation workflows.
+- Switch the loader to `cd.load_sentinel2_ndvi_zscore_cube` (or `cd.load_sentinel2_ndvi_cube` + `v.zscore(dim="time")`) for vegetation workflows.
 - Visualize any cube inline with `pipe(cube) | v.show_cube_lexcube(title="My Cube")`.
 - Follow the [Examples & Recipes](../examples/prism_jja_variance.md) section for narrated analyses.

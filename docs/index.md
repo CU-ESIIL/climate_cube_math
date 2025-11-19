@@ -18,7 +18,7 @@ CubeDynamics treats every spatiotemporal grid as a **cube** and lets you compose
 
 ## What is CubeDynamics?
 
-CubeDynamics wraps `xarray.DataArray` and `xarray.Dataset` objects whose dimensions follow the cube pattern `(time, y, x [, band])`. Load data with helpers such as `load_prism_cube`, `load_gridmet_cube`, and `load_sentinel2_ndvi_cube`, then keep the cube intact as you build analyses. The package leans on lazy loading (Dask) so you can process multi-decade archives from PRISM, gridMET, and Sentinel-2 NDVI chips without downloading everything locally.
+CubeDynamics wraps `xarray.DataArray` and `xarray.Dataset` objects whose dimensions follow the cube pattern `(time, y, x [, band])`. Load data with helpers such as `load_prism_cube`, `load_gridmet_cube`, `load_sentinel2_ndvi_cube` (raw NDVI), or `load_sentinel2_ndvi_zscore_cube` (standardized NDVI), then keep the cube intact as you build analyses. The package leans on lazy loading (Dask) so you can process multi-decade archives from PRISM, gridMET, and Sentinel-2 NDVI chips without downloading everything locally.
 
 CubeDynamics is inspired by tidy data grammars: call `pipe(cube)` once, then stack verbs for transforms, statistics, IO, and visualization. Verbs are tiny factories, which means the same function works for every cube. New loaders, verbs, and models can be added without changing the mental model.
 
