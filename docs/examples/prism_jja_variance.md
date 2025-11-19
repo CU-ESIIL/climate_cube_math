@@ -28,6 +28,12 @@ jja_var = (
 ).unwrap()
 ```
 
+`v.variance` defaults to `keep_dim=True`, so the `time` dimension remains in the result (length 1) and stays Lexcube-ready. Set `keep_dim=False` when you intentionally want a 2D map:
+
+```python
+jja_map = pipe(cube) | v.month_filter([6, 7, 8]) | v.variance(dim="time", keep_dim=False)
+```
+
 Because the cube stays in `xarray`, you can coarsen it, clip to focus on extremes, or export to NetCDF with `v.to_netcdf`. Reuse the same grammar for other PRISM variables (`tmax`, `tdmean`) by switching the `variable` parameter.
 
 ## Optional: Lexcube visualization

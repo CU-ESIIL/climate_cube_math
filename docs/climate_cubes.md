@@ -9,13 +9,20 @@ dimensions) produced by the streaming loaders.
 ```python
 import cubedynamics as cd
 
-# Assume boulder_aoi is defined as in the Boulder example
+# Bounding box describing the AOI
+bbox = {
+    "min_lon": -105.35,
+    "max_lon": -105.20,
+    "min_lat": 40.00,
+    "max_lat": 40.10,
+}
+
 cube = cd.load_gridmet_cube(
-    aoi_geojson=boulder_aoi,
-    variable="pr",
+    variables=["pr"],
     start="2000-01-01",
     end="2020-12-31",
-    freq="MS",
+    aoi=bbox,
+    time_res="MS",
     chunks={"time": 120},
 )
 print(cube.dims)
@@ -23,9 +30,11 @@ print(cube.dims)
 
 The loader harmonizes CRS, attaches metadata, and returns a lazily-evaluated
 `xarray.Dataset`. Other loaders follow the same interface (`cd.load_prism_cube`,
-`cd.load_s2_cube`, `cd.load_s2_ndvi_cube`), using the keyword-only AOI grammar:
+`cd.load_sentinel2_cube`, `cd.load_sentinel2_ndvi_cube`,
+`cd.load_sentinel2_ndvi_zscore_cube`), using the keyword-only AOI grammar:
 pick a `lat`/`lon` point, a `[min_lon, min_lat, max_lon, max_lat]` bounding box,
-or a GeoJSON Feature/FeatureCollection via `aoi_geojson`.
+or a GeoJSON Feature/FeatureCollection via `aoi_geojson` (for loaders that
+support it).
 
 ## Derived diagnostics
 

@@ -10,27 +10,19 @@ from cubedynamics.stats.anomalies import temporal_anomaly
 from cubedynamics.stats.spatial import spatial_coarsen_mean
 from cubedynamics.viz.qa_plots import plot_median_over_space
 
-boulder_aoi = {
-    "type": "Feature",
-    "properties": {"name": "Boulder, CO"},
-    "geometry": {
-        "type": "Polygon",
-        "coordinates": [[
-            [-105.35, 40.00],
-            [-105.35, 40.10],
-            [-105.20, 40.10],
-            [-105.20, 40.00],
-            [-105.35, 40.00],
-        ]],
-    },
+boulder_bbox = {
+    "min_lon": -105.35,
+    "max_lon": -105.20,
+    "min_lat": 40.00,
+    "max_lat": 40.10,
 }
 
 tmax = cd.load_gridmet_cube(
-    aoi_geojson=boulder_aoi,
-    variable="tmmx",
+    variables=["tmmx"],
     start="2000-01-01",
     end="2020-12-31",
-    freq="MS",
+    aoi=boulder_bbox,
+    time_res="MS",
     chunks={"time": 120},
 )
 tmax_anom = temporal_anomaly(tmax, dim="time")
@@ -50,5 +42,6 @@ See also:
 - [PRISM precipitation anomaly / z-score cube](prism_variance_cube.md) for
   high-resolution precipitation summaries.
 - [Sentinel-2 NDVI anomaly (z-score) cube](s2_ndvi_zcube.md) for vegetation
-  dynamics that can be compared against the GRIDMET cube with
-  `v.correlation_cube`.
+  dynamics that can be compared against the GRIDMET cube with `xr.corr` or the
+  rolling helpers in `cubedynamics.stats`. (`v.correlation_cube` will return once
+  the streaming implementation is ready.)

@@ -35,5 +35,6 @@ See also:
 - [GRIDMET variance / z-score cube](gridmet_variance_cube.md) for AOI-wide
   meteorological drivers.
 - [Sentinel-2 NDVI anomaly (z-score) cube](s2_ndvi_zcube.md) for vegetation
-  anomalies that can be correlated with the PRISM cube using
-  `v.correlation_cube`.
+  anomalies that can be compared with PRISM cubes via `xr.corr` or the
+  rolling helpers in `cubedynamics.stats`. (`v.correlation_cube` is reserved for a
+  future streaming implementation.)

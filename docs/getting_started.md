@@ -77,27 +77,19 @@ import cubedynamics as cd
 from cubedynamics import pipe, verbs as v
 
 # Define a rough AOI around Boulder, CO (lon/lat pairs in EPSG:4326)
-boulder_aoi = {
-    "type": "Feature",
-    "properties": {"name": "Boulder, CO"},
-    "geometry": {
-        "type": "Polygon",
-        "coordinates": [[
-            [-105.35, 40.00],  # SW
-            [-105.35, 40.10],  # NW
-            [-105.20, 40.10],  # NE
-            [-105.20, 40.00],  # SE
-            [-105.35, 40.00],  # back to SW
-        ]],
-    },
+bbox = {
+    "min_lon": -105.35,
+    "max_lon": -105.20,
+    "min_lat": 40.00,
+    "max_lat": 40.10,
 }
 
 cube = cd.load_gridmet_cube(
-    aoi_geojson=boulder_aoi,
-    variable="pr",
+    variables=["pr"],
     start="2000-01-01",
     end="2020-12-31",
-    freq="MS",
+    aoi=bbox,
+    time_res="MS",
     chunks={"time": 120},
 )
 

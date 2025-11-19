@@ -4,7 +4,7 @@ CubeDynamics is a streaming-first climate cube math library with ggplot-style pi
 
 ## Features
 
-- **Streaming PRISM/gridMET/Sentinel-2 helpers** (`cd.load_prism_cube`, `cd.load_gridmet_cube`, `cd.load_s2_ndvi_cube`, `cd.load_sentinel2_cube`, `cd.load_sentinel2_bands_cube`, `cd.load_sentinel2_ndvi_cube`) for immediate analysis without bulk downloads.
+- **Streaming PRISM/gridMET/Sentinel-2 helpers** (`cd.load_prism_cube`, `cd.load_gridmet_cube`, `cd.load_sentinel2_cube`, `cd.load_sentinel2_bands_cube`, `cd.load_sentinel2_ndvi_cube`, `cd.load_sentinel2_ndvi_zscore_cube`) for immediate analysis without bulk downloads. Legacy `load_s2_*` aliases still work but the `load_sentinel2_*` names are the canonical entry points.
 - **Climate variance, correlation, trend, and synchrony cubes** that run on `xarray` objects and scale from laptops to clusters.
 - **Pipe + verb system** – build readable cube workflows with `pipe(cube) | v.month_filter(...) | v.variance(...)` syntax inspired by ggplot/dplyr.
 - **Verbs namespace (`cubedynamics.verbs`)** so transforms, stats, IO, and visualization live in focused modules.
@@ -51,7 +51,7 @@ still available for backward compatibility.
 - Apply verbs with `| v.verb_name(...)`. Each verb is a callable defined in `cubedynamics.verbs`.
 - In notebooks, the last `Pipe` expression in a cell auto-displays the inner `xarray` object, so calling `.unwrap()` is optional unless you need the object immediately.
 
-The same pattern works for gridMET via `cd.load_gridmet_cube(...)`, Sentinel-2 NDVI through `cd.load_s2_ndvi_cube(...)`, and any custom `xarray` object you create.
+The same pattern works for gridMET via `cd.load_gridmet_cube(...)`, Sentinel-2 NDVI through `cd.load_sentinel2_ndvi_cube(...)` (raw) or `cd.load_sentinel2_ndvi_zscore_cube(...)` (standardized), and any custom `xarray` object you create.
 
 ### Example: stream a gridMET cube for Boulder, CO
 
@@ -62,29 +62,20 @@ can flow directly into the pipe system.
 import cubedynamics as cd
 from cubedynamics import pipe, verbs as v
 
-# Define a rough AOI around Boulder, CO (lon/lat pairs in EPSG:4326)
-boulder_aoi = {
-    "type": "Feature",
-    "properties": {"name": "Boulder, CO"},
-    "geometry": {
-        "type": "Polygon",
-        "coordinates": [[
-            [-105.35, 40.00],  # SW
-            [-105.35, 40.10],  # NW
-            [-105.20, 40.10],  # NE
-            [-105.20, 40.00],  # SE
-            [-105.35, 40.00],  # back to SW
-        ]],
-    },
+boulder_bbox = {
+    "min_lon": -105.35,
+    "max_lon": -105.20,
+    "min_lat": 40.00,
+    "max_lat": 40.10,
 }
 
 # Stream a monthly gridMET precipitation cube for Boulder
 cube = cd.load_gridmet_cube(
-    aoi_geojson=boulder_aoi,
-    variable="pr",
+    variables=["pr"],
     start="2000-01-01",
     end="2020-12-31",
-    freq="MS",
+    aoi=boulder_bbox,
+    time_res="MS",
     chunks={"time": 120},
 )
 
@@ -134,13 +125,44 @@ s2_rgbn = cd.load_sentinel2_bands_cube(
 `load_sentinel2_bands_cube` enforces that a band list is provided (raising a
 ``ValueError`` when empty) and otherwise mirrors the generic loader.
 
-#### NDVI anomaly (z-score) cube
+#### NDVI cubes
 
 ```python
 import cubedynamics as cd
 from cubedynamics import pipe, verbs as v
 
-ndvi_z = cd.load_sentinel2_ndvi_cube(
+ndvi = cd.load_sentinel2_ndvi_cube(
+    lat=40.0,
+    lon=-105.25,
+    start="2018-01-01",
+    end="2020-12-31",
+)
+
+pipe(ndvi) | v.show_cube_lexcube(title="Sentinel-2 NDVI (raw)")
+```
+
+`load_sentinel2_ndvi_cube` uses the band loader to grab the red (B04) and NIR
+(B08) bands, runs `v.ndvi_from_s2(...)`, and returns **raw NDVI reflectance** in
+the physical range `[-1, 1]` with dims `(time, y, x)`. Pass ``return_raw=True``
+to also grab the reflectance stack before NDVI is computed:
+
+```python
+s2_bands, ndvi = cd.load_sentinel2_ndvi_cube(
+    lat=40.0,
+    lon=-105.25,
+    start="2018-01-01",
+    end="2020-12-31",
+    return_raw=True,
+)
+```
+
+Need standardized anomalies out of the box? Use
+`cd.load_sentinel2_ndvi_zscore_cube(...)`, which wraps the raw loader and applies
+`v.zscore(dim="time", keep_dim=True)` so the cube stays `(time, y, x)` and is
+Lexcube-ready:
+
+```python
+ndvi_z = cd.load_sentinel2_ndvi_zscore_cube(
     lat=40.0,
     lon=-105.25,
     start="2018-01-01",
@@ -149,12 +171,6 @@ ndvi_z = cd.load_sentinel2_ndvi_cube(
 
 pipe(ndvi_z) | v.show_cube_lexcube(title="Sentinel-2 NDVI z-score")
 ```
-
-`load_sentinel2_ndvi_cube` uses the band loader to grab the red (B04) and NIR
-(B08) bands, runs `v.ndvi_from_s2(...)`, and standardizes NDVI over time via
-`v.zscore(dim="time")`. The helper returns a `(time, y, x)` NDVI z-score cube
-ready for the rest of the verbs API. Pass ``return_raw=True`` to also receive
-the raw Sentinel-2 reflectance stack and intermediate NDVI cube.
 
 If you prefer to customize every step, the helper simply wraps the manual
 pipeline below:
@@ -203,19 +219,15 @@ ndvi_z = (
 (pipe(ndvi_z) | v.show_cube_lexcube(title="Sentinel-2 NDVI z-score", clim=(-3, 3)))
 median_series = ndvi_z.median(dim=("y", "x"))
 median_series.plot.line(x="time", ylabel="Median NDVI z-score")
-
-corr_cube = (
-    pipe(ndvi_z)
-    | v.correlation_cube(prism_anom_cube, dim="time")
-).unwrap()
-# (where prism_anom_cube came from the PRISM anomaly example above)
 ```
 
 NDVI anomaly cubes capture unusual greenness events (drought stress, rapid
 recovery, disturbance). Because the pipe grammar keeps every cube on the same
 grid, you can compare vegetation anomalies to PRISM precipitation or gridMET
-temperature variance at the exact pixels of interest. The full notebook lives at
-[`notebooks/example_sentinel2_ndvi_zscore.ipynb`](notebooks/example_sentinel2_ndvi_zscore.ipynb).
+temperature variance at the exact pixels of interest. Use `xr.corr` today for
+per-pixel climate/NDVI correlations; the dedicated `v.correlation_cube` factory
+is a placeholder that currently raises `NotImplementedError`. The full notebook
+lives at [`notebooks/example_sentinel2_ndvi_zscore.ipynb`](notebooks/example_sentinel2_ndvi_zscore.ipynb).
 
 ### Interactive Lexcube visualization
 
@@ -225,12 +237,18 @@ CubeDynamics integrates with [Lexcube](https://github.com/carbonplan/lexcube) to
 from cubedynamics import pipe, verbs as v
 import cubedynamics as cd
 
+bbox = {
+    "min_lon": -105.35,
+    "max_lon": -105.20,
+    "min_lat": 40.00,
+    "max_lat": 40.10,
+}
+
 cube = cd.load_gridmet_cube(
-    lat=40.0,
-    lon=-105.25,
+    variables=["pr"],
     start="2000-01-01",
     end="2020-12-31",
-    variable="pr",
+    aoi=bbox,
 )
 
 # JJA cube + Lexcube widget
@@ -240,15 +258,17 @@ pipe(cube) | v.month_filter([6, 7, 8]) | v.show_cube_lexcube(cmap="RdBu_r")
 cd.show_cube_lexcube(cube, cmap="RdBu_r")
 ```
 
-Lexcube widgets require a live Python environment (Jupyter, Colab, Binder). They do not execute on the static GitHub Pages site.
+Lexcube widgets require a live Python environment (Jupyter, Colab, Binder) and a
+3D `(time, y, x)` cube (Datasets with a single data variable work as well). They
+do not execute on the static GitHub Pages site.
 
 ## API Overview
 
 - `pipe` for wrapping any cube before piping.
 - `verbs` (``from cubedynamics import verbs as v``) exposes transforms, statistics, IO, and visualization helpers.
-- Streaming helpers: `cd.load_prism_cube`, `cd.load_gridmet_cube`, `cd.load_s2_cube`, `cd.load_s2_ndvi_cube`, `cd.load_sentinel2_cube`, `cd.load_sentinel2_bands_cube`, `cd.load_sentinel2_ndvi_cube`.
+- Streaming helpers: `cd.load_prism_cube`, `cd.load_gridmet_cube`, `cd.load_sentinel2_cube`, `cd.load_sentinel2_bands_cube`, `cd.load_sentinel2_ndvi_cube`, `cd.load_sentinel2_ndvi_zscore_cube`. Legacy `load_s2_*` aliases resolve to the same loaders.
 - Vegetation helper: `v.ndvi_from_s2` for direct NDVI calculation on Sentinel-2 cubes.
-- Stats verbs: `v.anomaly`, `v.month_filter`, `v.variance`, `v.zscore`, `v.correlation_cube`, and more under `cubedynamics.ops.*`.
+- Stats verbs: `v.mean`, `v.variance`, `v.anomaly`, `v.month_filter`, and `v.zscore`. The `v.correlation_cube` factory is reserved for a future streaming implementation and currently raises `NotImplementedError`.
 - IO verbs: `v.to_netcdf`, `v.to_zarr`, etc.
 - Visualization verbs/helpers: `v.show_cube_lexcube` and `cd.show_cube_lexcube` for interactive exploration.
 

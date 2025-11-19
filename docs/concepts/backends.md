@@ -7,7 +7,7 @@ of the math stack can focus on statistics instead of I/O details.
 
 ## Sentinel-2
 
-* Loader: `cubedynamics.load_s2_cube` / `cubedynamics.load_s2_ndvi_cube`
+* Loader: `cubedynamics.load_sentinel2_cube` / `cubedynamics.load_sentinel2_ndvi_cube`
 * Purpose: multispectral reflectance for vegetation index and QA work.
 * Typical recipe: compute NDVI with `cubedynamics.verbs.ndvi_from_s2` and then
   derive z-scores or temporal anomalies with `cubedynamics.verbs.zscore` or the
@@ -24,13 +24,20 @@ of the math stack can focus on statistics instead of I/O details.
 import cubedynamics as cd
 from cubedynamics import pipe, verbs as v
 
-# Assume boulder_aoi is defined as in the Boulder example
+# Bounding box used by the gridMET loader
+bbox = {
+    "min_lon": -105.35,
+    "max_lon": -105.20,
+    "min_lat": 40.00,
+    "max_lat": 40.10,
+}
+
 precip = cd.load_gridmet_cube(
-    aoi_geojson=boulder_aoi,
-    variable="pr",
+    variables=["pr"],
     start="2000-01-01",
     end="2020-12-31",
-    freq="MS",
+    aoi=bbox,
+    time_res="MS",
     chunks={"time": 120},
 )
 

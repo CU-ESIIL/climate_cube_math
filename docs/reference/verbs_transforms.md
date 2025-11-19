@@ -4,7 +4,7 @@ Transform verbs reshape or filter cubes before you compute downstream statistics
 
 ### `v.anomaly(dim="time")`
 
-Compute anomalies by subtracting the mean along a given dimension.
+Compute anomalies by subtracting the mean along a given dimension. The output keeps the same shape as the input cube so Lexcube visualization remains valid.
 
 ```python
 from cubedynamics import pipe, verbs as v
@@ -20,7 +20,7 @@ anom = (
 
 ### `v.month_filter(months)`
 
-Filter the cube to only certain calendar months.
+Filter the cube to only certain calendar months. The verb drops timesteps outside the requested month list.
 
 ```python
 jja = pipe(cube) | v.month_filter([6, 7, 8])
@@ -31,7 +31,7 @@ jja = pipe(cube) | v.month_filter([6, 7, 8])
 
 ### `v.ndvi_from_s2(nir_band="B08", red_band="B04")`
 
-Derive NDVI from Sentinel-2 reflectance cubes.
+Derive NDVI from Sentinel-2 reflectance cubes. The incoming object must expose a `band` dimension containing the requested near-infrared (`nir_band`) and red (`red_band`) entries. The verb returns a `(time, y, x)` NDVI cube with float32 reflectance values in `[-1, 1]`.
 
 ```python
 ndvi = (
@@ -41,33 +41,6 @@ ndvi = (
 ```
 
 - **Parameters**: `nir_band`, `red_band` – band names present in the cube.
-- **Notes**: Works with cubes loaded via `cd.load_s2_cube` or `cubo.create`.
+- **Notes**: Works with cubes loaded via `cd.load_sentinel2_cube` (legacy alias `load_s2_cube`) or `cubo.create`.
 
-### `v.rolling_corr_vs_center(window_days, min_t)`
-
-Compute rolling correlations between each pixel and the center/anchor pixel.
-
-```python
-rolling = (
-    pipe(ndvi_z)
-    | v.rolling_corr_vs_center(window_days=90, min_t=5)
-)
-```
-
-- **Parameters**: `window_days` – rolling window size; `min_t` – minimum observations per window.
-- **Notes**: Produces a cube aligned to the rolling window center.
-
-### `v.rolling_tail_dep_vs_center(window_days, min_t, b=0.5)`
-
-Measure asymmetric tail dependence relative to an anchor pixel.
-
-```python
- tails = (
-     pipe(ndvi_z)
-     | v.rolling_tail_dep_vs_center(window_days=90, min_t=5, b=0.5)
- )
-```
-
-- **Notes**: Returns bottom, top, and difference tail dependence cubes for Lexcube visualization.
-
-Use these verbs as building blocks ahead of stats like variance or correlation.
+Use these verbs as building blocks ahead of stats like variance or correlation. Rolling synchrony helpers such as `cubedynamics.rolling_corr_vs_center` and `cubedynamics.rolling_tail_dep_vs_center` live outside the `verbs` namespace.

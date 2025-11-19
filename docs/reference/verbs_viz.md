@@ -16,27 +16,10 @@ pipe(cube) \
     | v.show_cube_lexcube(title="PRISM JJA precipitation", cmap="RdBu_r")
 ```
 
-- **Parameters**: pass any Lexcube keyword arguments (`title`, `cmap`, `vmin`, `vmax`).
-- **Notes**: Widgets render only in live notebook environments.
+- **Parameters**: pass any Lexcube keyword arguments (`title`, `cmap`, `vmin`, `vmax`). Datasets with a single data variable are automatically converted to a DataArray.
+- **Notes**: Widgets render only in live notebook environments and require a 3D `(time, y, x)` cube. Reducers such as `v.mean`/`v.variance` should use `keep_dim=True` to preserve this layout.
 
-### `v.plot_median_over_space(ylabel=None, title=None)`
-
-Generate QA plots summarizing the spatial median over time.
-
-```python
-from cubedynamics import pipe, verbs as v
-
-ax = (
-    pipe(cube)
-    | v.plot_median_over_space(
-        ylabel="Median NDVI z-score",
-        title="Median NDVI z-score over time",
-    )
-)
-```
-
-- **Returns**: Matplotlib axis for further customization.
-- **Notes**: Useful for spot-checking anomalies before exporting results.
+For QA plots outside Lexcube, call the functional helper `cubedynamics.plot_median_over_space(cube, ...)`.
 
 ### `v.quick_map()` (planned)
 

@@ -6,7 +6,7 @@ widget. It is the vegetation counterpart to the [PRISM](prism_variance_cube.md)
 and [gridMET](gridmet_variance_cube.md) variance examples so that every cube can
 be correlated at the pixel level.
 
-1. **Load Sentinel-2** – `load_s2_cube` requests a chip centered on your
+1. **Load Sentinel-2** – `load_sentinel2_cube` (legacy alias `load_s2_cube`) requests a chip centered on your
    latitude/longitude, with configurable time range, edge length, spatial
    resolution, and maximum cloud fraction.
 2. **Compute NDVI + z-scores via the verbs namespace** – chain
@@ -19,7 +19,7 @@ be correlated at the pixel level.
    the spatial median.
 
 Prefer to stream through [`cubo`](https://github.com/carbonplan/cubo) instead of
-`cd.load_s2_cube`? Drop the snippet below at the top of the notebook and pipe
+`cd.load_sentinel2_cube`? Drop the snippet below at the top of the notebook and pipe
 the resulting `s2` cube through the same verbs:
 
 ```python
@@ -59,7 +59,7 @@ from cubedynamics.utils.chunking import coarsen_and_stride
 from cubedynamics.viz.qa_plots import plot_median_over_space
 
 # 1. Load Sentinel-2 cube
-s2 = cd.load_s2_cube(
+s2 = cd.load_sentinel2_cube(
     lat=43.89,
     lon=-102.18,
     start="2023-06-01",
@@ -106,5 +106,6 @@ ax = plot_median_over_space(
 
 The same pattern works for other sensors as long as you can derive the target
 index cube and feed it into the anomaly functions. Correlate NDVI anomalies with
-PRISM or gridMET cubes via `v.correlation_cube` to uncover joint climate and
-vegetation behavior.
+PRISM or gridMET cubes via `xr.corr` or the rolling helpers in
+`cubedynamics.stats` while the dedicated `v.correlation_cube` factory remains a
+placeholder.

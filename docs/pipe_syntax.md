@@ -85,21 +85,20 @@ pipe(cube) | v.to_netcdf(path)
 
 `to_netcdf` writes the incoming cube to disk (returning the original object so the pipe can continue). When running docs examples you can point to a temporary directory such as `/tmp/example.nc`.
 
-### `correlation_cube(other, dim="time")`
+### `correlation_cube(other, dim="time")` (planned)
+
+The exported factory currently raises `NotImplementedError` and is reserved for a future streaming implementation. Use `xr.corr` or the rolling helpers in `cubedynamics.stats.correlation`/`stats.tails` today:
 
 ```python
 import xarray as xr
+import cubedynamics as cd
 from cubedynamics import pipe, verbs as v
 
-other = xr.DataArray([0.5, 1.5, 2.5, 3.5], dims=["time"], coords={"time": time})
+ppt_anom = (pipe(prism_cube) | v.anomaly(dim="time")).unwrap()["ppt"]
+ndvi_z = cd.load_sentinel2_ndvi_zscore_cube(...)
 
-corr = (
-    pipe(cube)
-    | v.correlation_cube(other, dim="time")
-)
+per_pixel_corr = xr.corr(ndvi_z, ppt_anom, dim="time")
 ```
-
-`correlation_cube` computes correlations between the pipeline cube and another cube along the dimension provided.
 
 ### `show_cube_lexcube(**kwargs)`
 
@@ -108,11 +107,10 @@ import cubedynamics as cd
 from cubedynamics import pipe, verbs as v
 
 cube = cd.load_gridmet_cube(
-    lat=40.0,
-    lon=-105.25,
+    variables=["pr"],
     start="2000-01-01",
     end="2020-12-31",
-    variable="pr",
+    aoi={"min_lon": -105.35, "max_lon": -105.20, "min_lat": 40.00, "max_lat": 40.10},
 )
 
 pipe(cube) | v.month_filter([6, 7, 8]) | v.show_cube_lexcube(cmap="RdBu_r")
@@ -122,18 +120,25 @@ pipe(cube) | v.month_filter([6, 7, 8]) | v.show_cube_lexcube(cmap="RdBu_r")
 
 ## Example: chaining a streamed cube
 
-Assuming `boulder_aoi` is defined as in the getting started example, you can stream gridMET data and flow it through the pipe:
+Define a simple bounding box and stream gridMET data directly into the pipe:
 
 ```python
 import cubedynamics as cd
 from cubedynamics import pipe, verbs as v
 
+boulder_bbox = {
+    "min_lon": -105.35,
+    "max_lon": -105.20,
+    "min_lat": 40.00,
+    "max_lat": 40.10,
+}
+
 cube = cd.load_gridmet_cube(
-    aoi_geojson=boulder_aoi,
-    variable="pr",
+    variables=["pr"],
     start="2000-01-01",
     end="2020-12-31",
-    freq="MS",
+    aoi=boulder_bbox,
+    time_res="MS",
     chunks={"time": 120},
 )
 

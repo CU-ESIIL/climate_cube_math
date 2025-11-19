@@ -31,10 +31,12 @@ Each verb receives the previous output. Pipes simply pass the cube along, so as 
 Verbs are grouped into focused namespaces:
 
 - **Transform verbs** – reshape, filter, or derive indices (`v.anomaly`, `v.month_filter`, `v.ndvi_from_s2`).
-- **Stats verbs** – compute variance, z-scores, correlations, or rolling metrics (`v.variance`, `v.zscore`, `v.correlation_cube`).
+- **Stats verbs** – summarize cubes along dimensions (`v.mean`, `v.variance`, `v.zscore`) or convert units (`v.anomaly`).
 - **IO verbs** – persist results without breaking the chain (`v.to_netcdf`).
 - **Visualization verbs** – preview cubes inline (`v.show_cube_lexcube`, QA plots) before exporting.
 - **Models (coming soon)** – wrappers around ML/statistical models that accept cubes as inputs.
+
+Cross-dataset correlation verbs are reserved for a future release: the exported `v.correlation_cube` factory currently raises `NotImplementedError`. Use the existing rolling helpers in `cubedynamics.stats.correlation`/`stats.tails` for synchrony analyses today.
 
 See the [Verbs Reference](../reference/verbs_transforms.md) section for detailed signatures and examples.
 
