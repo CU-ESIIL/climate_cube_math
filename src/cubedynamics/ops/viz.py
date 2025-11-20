@@ -31,15 +31,19 @@ def plot(
 
         # Map legacy args to the newer verb implementation.
         vmin_vmax = clim if clim is not None else (None, None)
+        plot_kwargs = {"aspect": aspect}
+        if vmin_vmax[0] is not None:
+            plot_kwargs["vmin"] = vmin_vmax[0]
+        if vmin_vmax[1] is not None:
+            plot_kwargs["vmax"] = vmin_vmax[1]
+
         return _plot_verb(
-            time_dim=time_dim if time_dim is not None else "time",
-            y_dim=cube.dims[1] if len(cube.dims) >= 2 else "y",
-            x_dim=cube.dims[2] if len(cube.dims) >= 3 else "x",
+            cube,
+            time_dim=time_dim,
             cmap=cmap,
-            vmin=vmin_vmax[0],
-            vmax=vmin_vmax[1],
-            aspect=aspect,
-        )(cube)
+            kind="auto",
+            **plot_kwargs,
+        )
 
     return _inner
 
