@@ -5,7 +5,7 @@ import io
 
 import numpy as np
 import xarray as xr
-from matplotlib import cm, colors as mcolors
+from matplotlib import colormaps, colors as mcolors
 from PIL import Image
 from IPython.display import IFrame
 
@@ -89,7 +89,7 @@ def cube_from_dataarray(
             norm = mcolors.Normalize(vmin=vmin, vmax=vmax)
         else:
             norm = mcolors.Normalize(vmin=-1, vmax=1)
-        cmap_obj = cm.get_cmap(cmap)
+        cmap_obj = colormaps.get_cmap(cmap)
         rgba = cmap_obj(norm(arr))
         img = (rgba * 255).astype("uint8")
         buf = io.BytesIO()
@@ -115,7 +115,17 @@ def cube_from_dataarray(
     # -------------------------
     # 7. Render cube HTML
     # -------------------------
-    write_css_cube_static(out_html=out_html, size_px=size_px, faces=faces)
+    # Build a simple colorbar that matches the selected colormap
+    gradient = np.linspace(0, 1, 256).reshape(1, -1)
+    grad_rgba = colormaps.get_cmap(cmap)(gradient)
+    grad_img = (grad_rgba * 255).astype("uint8")
+    buf_cb = io.BytesIO()
+    Image.fromarray(grad_img).save(buf_cb, format="PNG")
+    colorbar_b64 = base64.b64encode(buf_cb.getvalue()).decode("ascii")
+
+    write_css_cube_static(
+        out_html=out_html, size_px=size_px, faces=faces, colorbar_b64=colorbar_b64
+    )
 
     # -------------------------
     # 8. Inject colorbar + loader
