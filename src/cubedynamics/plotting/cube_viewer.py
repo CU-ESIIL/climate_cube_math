@@ -39,6 +39,7 @@ def cube_from_dataarray(
     coord: "CoordCube" | None = None,
     annotations: list["CubeAnnotation"] | None = None,
     return_html: bool = False,
+    show_legend: bool = True,
 ):
     """
     Build an interactive 3D CSS cube from a (time, y, x) DataArray.
@@ -190,12 +191,16 @@ def cube_from_dataarray(
     gradient = np.linspace(0, 1, 256).reshape(1, -1)
     grad_rgba = colormaps.get_cmap(cmap)(gradient)
     grad_img = (grad_rgba * 255).astype("uint8")
-    buf_cb = io.BytesIO()
-    Image.fromarray(grad_img).save(buf_cb, format="PNG")
-    colorbar_b64 = base64.b64encode(buf_cb.getvalue()).decode("ascii")
+    colorbar_b64 = None
+    if show_legend:
+        buf_cb = io.BytesIO()
+        Image.fromarray(grad_img).save(buf_cb, format="PNG")
+        colorbar_b64 = base64.b64encode(buf_cb.getvalue()).decode("ascii")
 
     derived_title = title or da.name or f"{t_dim} × {y_dim} × {x_dim} cube"
     legend_title = legend_title or derived_title
+    if not show_legend:
+        legend_title = None
 
     css_vars: Dict[str, str] = {
         "--cube-bg-color": getattr(theme, "bg_color", "#000"),
