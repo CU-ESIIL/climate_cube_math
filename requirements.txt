@@ -4,6 +4,7 @@ xarray
 dask
 matplotlib
 Pillow
+crc32c
 lexcube
 cubo
 pytest

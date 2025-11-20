@@ -21,6 +21,7 @@ dependencies = [
     "dask",
     "matplotlib",
     "Pillow",
+    "crc32c",
 ]
 
 [project.urls]
