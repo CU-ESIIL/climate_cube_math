@@ -282,6 +282,10 @@ def _render_cube_html(
       pointer-events: none;
       text-shadow: 0 1px 2px rgba(0,0,0,0.45);
     }}
+    .cube-label {{
+      position: absolute;
+      pointer-events: none;
+    }}
     .cube-axis-time-name {{
       left: 10%;
       bottom: 20%;
@@ -388,15 +392,15 @@ def _render_cube_html(
             {interior_html}
             <div class=\"cube-outline\"></div>
           </div>
-          <div class=\"cube-axis-label cube-axis-time-name\">{time_meta.get('name','')}</div>
-          <div class=\"cube-axis-label cube-axis-time-min\">{time_meta.get('min','')}</div>
-          <div class=\"cube-axis-label cube-axis-time-max\">{time_meta.get('max','')}</div>
-          <div class=\"cube-axis-label cube-axis-x-name\">{x_meta.get('name','')}</div>
-          <div class=\"cube-axis-label cube-axis-x-min\">{x_meta.get('min','')}</div>
-          <div class=\"cube-axis-label cube-axis-x-max\">{x_meta.get('max','')}</div>
-          <div class=\"cube-axis-label cube-axis-y-name\">{y_meta.get('name','')}</div>
-          <div class=\"cube-axis-label cube-axis-y-min\">{y_meta.get('min','')}</div>
-          <div class=\"cube-axis-label cube-axis-y-max\">{y_meta.get('max','')}</div>
+          <div class=\"cube-axis-label cube-label cube-axis-time-name\">{time_meta.get('name','')}</div>
+          <div class=\"cube-axis-label cube-label cube-axis-time-min\">{time_meta.get('min','')}</div>
+          <div class=\"cube-axis-label cube-label cube-axis-time-max\">{time_meta.get('max','')}</div>
+          <div class=\"cube-axis-label cube-label cube-axis-x-name\">{x_meta.get('name','')}</div>
+          <div class=\"cube-axis-label cube-label cube-axis-x-min\">{x_meta.get('min','')}</div>
+          <div class=\"cube-axis-label cube-label cube-axis-x-max\">{x_meta.get('max','')}</div>
+          <div class=\"cube-axis-label cube-label cube-axis-y-name\">{y_meta.get('name','')}</div>
+          <div class=\"cube-axis-label cube-label cube-axis-y-min\">{y_meta.get('min','')}</div>
+          <div class=\"cube-axis-label cube-label cube-axis-y-max\">{y_meta.get('max','')}</div>
         </div>
       </div>
     </div>

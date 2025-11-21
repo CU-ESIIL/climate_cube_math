@@ -27,6 +27,16 @@ from cubedynamics.vase import VaseDefinition
 from cubedynamics.utils import _infer_time_y_x_dims
 
 
+class _CubePlotMeta(type):
+    def __instancecheck__(cls, instance: object) -> bool:  # pragma: no cover - lightweight helper
+        if type.__instancecheck__(cls, instance):
+            return True
+        viewer = getattr(instance, "_cd_last_viewer", None)
+        if viewer is None:
+            viewer = getattr(getattr(instance, "attrs", {}), "_cd_last_viewer", None)
+        return viewer is not None and type.__instancecheck__(cls, viewer)
+
+
 @dataclass
 class CubeTheme:
     """Theme configuration for cube plots.
@@ -364,7 +374,7 @@ def _looks_like_lon(values: np.ndarray, units: str, dim_name: str) -> bool:
 
 
 @dataclass
-class CubePlot:
+class CubePlot(metaclass=_CubePlotMeta):
     """Internal object model for cube visualizations.
 
     The class glues the grammar-of-graphics pieces together while keeping the
