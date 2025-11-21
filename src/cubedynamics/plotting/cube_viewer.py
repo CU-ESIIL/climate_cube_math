@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 import io
+import uuid
 from typing import Any, Dict, Optional, TYPE_CHECKING
 
 import numpy as np
@@ -130,43 +131,13 @@ def _render_cube_html(
     color_limits: tuple[float, float],
     interior_meta: Dict[str, int],
 ) -> str:
-    half = size_px / 2
-    face_style = {
-        "front": front,
-        "back": back,
-        "left": left,
-        "right": right,
-        "top": top,
-        "bottom": bottom,
-    }
-    def _face_css(uri: str) -> str:
-        base = "background: rgba(255,255,255,0.05);"
-        if uri.lower() == "none":
-            return base
-        return (
-            "background-image: url('{0}'); background-size: cover; "
-            "background-position: center;"
-        ).format(uri)
-
-    interior_html_parts = []
-    if interior_planes:
-        for axis, idx, b64, meta in interior_planes:
-            transform = _interior_plane_transform(axis, idx, meta or interior_meta, size_px)
-            interior_html_parts.append(
-                "<div class=\"interior-plane\" "
-                f"style=\"transform: {transform}; background-image: url('data:image/png;base64,{b64}');\"></div>"
-            )
-    interior_html = "".join(interior_html_parts)
-
     css_vars = " ".join(f"{k}: {v};" for k, v in theme.items())
-    elev = getattr(coord, "elev", 15.0)
-    azim = getattr(coord, "azim", -25.0)
-    zoom = getattr(coord, "zoom", 1.0)
 
     axis_meta = axis_meta or {}
     time_meta = axis_meta.get("time", {})
     x_meta = axis_meta.get("x", {})
     y_meta = axis_meta.get("y", {})
+    fig_id = uuid.uuid4().hex
 
     html = f"""
 <!DOCTYPE html>
@@ -219,116 +190,76 @@ def _render_cube_html(
       align-items: center;
       gap: 10px;
     }}
-    .cube-scene {{
-      position: relative;
-      width: 900px;
-      height: 680px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      perspective: 1600px;
-      transform: scale(var(--cube-zoom, 1));
-      transform-origin: center center;
-      transition: transform 120ms ease-out;
-    }}
-    #cube {{
+    .cube-container {{
       position: relative;
       width: var(--cube-size);
       height: var(--cube-size);
-      transform-style: preserve-3d;
-      transform: translateZ(0px) rotateX(var(--rotX, 20deg)) rotateY(var(--rotY, -30deg));
+      margin: auto;
     }}
-    .face {{
-      position: absolute;
-      width: var(--cube-size);
-      height: var(--cube-size);
-      background-size: cover;
-      background-position: center;
-      border: 1px solid #222;
-      box-sizing: border-box;
-      background-color: rgba(255,255,255,0.02);
-    }}
-    #front  {{ transform: translateZ({half}px); {_face_css(face_style['front'])} }}
-    #back   {{ transform: rotateY(180deg) translateZ({half}px); {_face_css(face_style['back'])} }}
-    #right  {{ transform: rotateY(90deg) translateZ({half}px); {_face_css(face_style['right'])} }}
-    #left   {{ transform: rotateY(-90deg) translateZ({half}px); {_face_css(face_style['left'])} }}
-    #top    {{ transform: rotateX(90deg) translateZ({half}px); {_face_css(face_style['top'])} }}
-    #bottom {{ transform: rotateX(-90deg) translateZ({half}px); {_face_css(face_style['bottom'])} }}
-    .interior-plane {{
-      position: absolute;
-      width: var(--cube-size);
-      height: var(--cube-size);
-      background-size: cover;
-      background-position: center;
-      opacity: 0.65;
-      mix-blend-mode: normal;
-      will-change: transform;
-      border: 1px solid rgba(255,255,255,0.08);
-    }}
-    .cube-outline {{
+
+    .cube-wrapper {{
       position: absolute;
       inset: 0;
-      width: var(--cube-size);
-      height: var(--cube-size);
-      transform-style: preserve-3d;
-      border: 1px solid rgba(255,255,255,0.15);
-      pointer-events: none;
-    }}
-    .cube-axis-label {{
-      position: absolute;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      font-size: 14px;
-      color: rgba(255, 255, 255, 0.85);
-      pointer-events: none;
-      text-shadow: 0 1px 2px rgba(0,0,0,0.45);
-    }}
-    .cube-label {{
-      position: absolute;
-      pointer-events: none;
-    }}
-    .cube-axis-time-name {{
-      left: 10%;
-      bottom: 20%;
-    }}
-    .cube-axis-time-min {{
-      left: 8%;
-      bottom: 5%;
-    }}
-    .cube-axis-time-max {{
-      left: 8%;
-      top: 5%;
     }}
 
-    .cube-axis-x-name {{
-      left: 40%;
-      bottom: 5%;
-    }}
-    .cube-axis-x-min {{
-      left: 25%;
-      bottom: 3%;
-    }}
-    .cube-axis-x-max {{
-      right: 8%;
-      bottom: 3%;
+    .cube-canvas {{
+      width: 100%;
+      height: 100%;
+      display: block;
     }}
 
-    .cube-axis-y-name {{
+    .axis-label {{
+      position: absolute;
+      font-size: 13px;
+      color: rgba(0,0,0,0.45);
+      pointer-events: none;
+    }}
+
+    /* Tight to each cube face */
+    .axis-x-min {{
+      bottom: 5%;
+      left: 15%;
+    }}
+    .axis-x-max {{
+      bottom: 5%;
+      right: 15%;
+    }}
+    .axis-x-name {{
+      bottom: 0%;
+      left: 50%;
+      transform: translateX(-50%);
+    }}
+
+    .axis-y-min {{
+      top: 15%;
       right: 5%;
-      top: 40%;
-      transform: rotate(-90deg);
-      transform-origin: center;
+      transform: rotate(90deg);
     }}
-    .cube-axis-y-min {{
-      right: 2%;
-      bottom: 10%;
-      transform: rotate(-90deg);
-      transform-origin: center;
+    .axis-y-max {{
+      bottom: 15%;
+      right: 5%;
+      transform: rotate(90deg);
     }}
-    .cube-axis-y-max {{
-      right: 2%;
-      top: 5%;
+    .axis-y-name {{
+      top: 50%;
+      right: 0%;
+      transform: translateY(-50%) rotate(90deg);
+    }}
+
+    .axis-t-min {{
+      left: 5%;
+      top: 75%;
       transform: rotate(-90deg);
-      transform-origin: center;
+    }}
+    .axis-t-max {{
+      left: 5%;
+      top: 25%;
+      transform: rotate(-90deg);
+    }}
+    .axis-t-name {{
+      left: 0%;
+      top: 50%;
+      transform: translateY(-50%) rotate(-90deg);
     }}
     .cube-legend-panel {{
       width: 100%;
@@ -377,30 +308,24 @@ def _render_cube_html(
     }}
   </style>
 </head>
-<body data-cb-min=\"{color_limits[0]:.2f}\" data-cb-max=\"{color_limits[1]:.2f}\" data-rot-x=\"{elev}\" data-rot-y=\"{azim}\" data-zoom=\"{zoom}\">\n\
+<body data-cb-min=\"{color_limits[0]:.2f}\" data-cb-max=\"{color_limits[1]:.2f}\">\n\
   <div class=\"cube-figure\" id=\"cube-figure\">{title_html}
     <div class=\"cube-main\">
       <div class=\"cube-inner\" id=\"cube-inner\">
-        <div class=\"cube-scene\" id=\"cube-scene\">
-          <div id=\"cube\">\n\
-            <div id=\"front\"  class=\"face\"></div>\n\
-            <div id=\"back\"   class=\"face\"></div>\n\
-            <div id=\"right\"  class=\"face\"></div>\n\
-            <div id=\"left\"   class=\"face\"></div>\n\
-            <div id=\"top\"    class=\"face\"></div>\n\
-            <div id=\"bottom\" class=\"face\"></div>\n\
-            {interior_html}
-            <div class=\"cube-outline\"></div>
+        <div class=\"cube-container\">
+          <div id=\"cube-wrapper-{fig_id}\" class=\"cube-wrapper\">
+            <canvas class=\"cube-canvas\" id=\"cube-canvas-{fig_id}\"></canvas>
           </div>
-          <div class=\"cube-axis-label cube-label cube-axis-time-name\">{time_meta.get('name','')}</div>
-          <div class=\"cube-axis-label cube-label cube-axis-time-min\">{time_meta.get('min','')}</div>
-          <div class=\"cube-axis-label cube-label cube-axis-time-max\">{time_meta.get('max','')}</div>
-          <div class=\"cube-axis-label cube-label cube-axis-x-name\">{x_meta.get('name','')}</div>
-          <div class=\"cube-axis-label cube-label cube-axis-x-min\">{x_meta.get('min','')}</div>
-          <div class=\"cube-axis-label cube-label cube-axis-x-max\">{x_meta.get('max','')}</div>
-          <div class=\"cube-axis-label cube-label cube-axis-y-name\">{y_meta.get('name','')}</div>
-          <div class=\"cube-axis-label cube-label cube-axis-y-min\">{y_meta.get('min','')}</div>
-          <div class=\"cube-axis-label cube-label cube-axis-y-max\">{y_meta.get('max','')}</div>
+
+          <div class=\"axis-label axis-x-min\">{x_meta.get('min','')}</div>
+          <div class=\"axis-label axis-x-max\">{x_meta.get('max','')}</div>
+          <div class=\"axis-label axis-y-min\">{y_meta.get('min','')}</div>
+          <div class=\"axis-label axis-y-max\">{y_meta.get('max','')}</div>
+          <div class=\"axis-label axis-t-min\">{time_meta.get('min','')}</div>
+          <div class=\"axis-label axis-t-max\">{time_meta.get('max','')}</div>
+          <div class=\"axis-label axis-x-name\">{x_meta.get('name','')}</div>
+          <div class=\"axis-label axis-y-name\">{y_meta.get('name','')}</div>
+          <div class=\"axis-label axis-t-name\">{time_meta.get('name','')}</div>
         </div>
       </div>
     </div>
@@ -408,52 +333,154 @@ def _render_cube_html(
   </div>
 
   <script>
-    class CubeScene {{
-      constructor() {{
-        this.cube = document.getElementById("cube");
-        this.scene = document.getElementById("cube-scene");
-        this.rotX = parseFloat(document.body.getAttribute("data-rot-x") || 20);
-        this.rotY = parseFloat(document.body.getAttribute("data-rot-y") || -30);
-        this.zoom = parseFloat(document.body.getAttribute("data-zoom") || 1.0);
-        this.dragging = false;
-        this.lastX = 0;
-        this.lastY = 0;
-        this.apply();
-        this.bind();
-      }}
+    (function() {{
+        const canvas = document.getElementById("cube-canvas-{fig_id}");
+        const gl = canvas.getContext("webgl");
 
-      apply() {{
-        this.cube.style.setProperty("--rotX", this.rotX + "deg");
-        this.cube.style.setProperty("--rotY", this.rotY + "deg");
-        this.scene.style.setProperty("--cube-zoom", this.zoom);
-      }}
+        if (!gl) return;
 
-      bind() {{
-        document.addEventListener("mousedown", e => {{
-          this.dragging = true;
-          this.lastX = e.clientX;
-          this.lastY = e.clientY;
+        // Resize
+        function resize() {{
+            const rect = canvas.parentElement.getBoundingClientRect();
+            canvas.width = rect.width;
+            canvas.height = rect.height;
+            gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
+        }}
+        resize();
+        window.addEventListener('resize', resize);
+
+        // Basic cube vertex shader + fragment shader (colored faces)
+        const vs = `
+          attribute vec3 pos;
+          uniform mat4 mvp;
+          void main() {{ gl_Position = mvp * vec4(pos, 1.0); }}
+        `;
+        const fs = `
+          precision highp float;
+          void main() {{ gl_FragColor = vec4(0.2, 0.6, 0.3, 0.8); }}
+        `;
+
+        function compile(type, src) {{
+            const s = gl.createShader(type);
+            gl.shaderSource(s, src);
+            gl.compileShader(s);
+            return s;
+        }}
+
+        const program = gl.createProgram();
+        gl.attachShader(program, compile(gl.VERTEX_SHADER, vs));
+        gl.attachShader(program, compile(gl.FRAGMENT_SHADER, fs));
+        gl.linkProgram(program);
+        gl.useProgram(program);
+
+        const cubeVerts = new Float32Array([
+            // 8 cube vertices for wireframe
+            -1,-1,-1,  1,-1,-1,  1,1,-1,  -1,1,-1,
+            -1,-1, 1,  1,-1, 1,  1,1, 1,  -1,1, 1
+        ]);
+
+        const lines = new Uint16Array([
+            0,1, 1,2, 2,3, 3,0,
+            4,5, 5,6, 6,7, 7,4,
+            0,4, 1,5, 2,6, 3,7
+        ]);
+
+        const vbo = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
+        gl.bufferData(gl.ARRAY_BUFFER, cubeVerts, gl.STATIC_DRAW);
+
+        const lbo = gl.createBuffer();
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, lbo);
+        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, lines, gl.STATIC_DRAW);
+
+        const posLoc = gl.getAttribLocation(program, "pos");
+        gl.enableVertexAttribArray(posLoc);
+        gl.vertexAttribPointer(posLoc, 3, gl.FLOAT, false, 0, 0);
+
+        let rotationX = 0.7;
+        let rotationY = 0.8;
+
+        let dragging = false;
+        let lastX = 0, lastY = 0;
+
+        canvas.addEventListener("pointerdown", e => {{
+            dragging = true;
+            lastX = e.clientX;
+            lastY = e.clientY;
         }});
-        document.addEventListener("mouseup", () => {{ this.dragging = false; }});
-        document.addEventListener("mousemove", e => {{
-          if (!this.dragging) return;
-          const dx = e.clientX - this.lastX;
-          const dy = e.clientY - this.lastY;
-          this.lastX = e.clientX;
-          this.lastY = e.clientY;
-          this.rotY += dx * 0.4;
-          this.rotX -= dy * 0.4;
-          this.apply();
+
+        window.addEventListener("pointerup", () => dragging = false);
+
+        window.addEventListener("pointermove", e => {{
+            if (!dragging) return;
+            let dx = e.clientX - lastX;
+            let dy = e.clientY - lastY;
+            rotationY += dx * 0.01;
+            rotationX += dy * 0.01;
+            lastX = e.clientX;
+            lastY = e.clientY;
         }});
 
-        this.scene.addEventListener("wheel", e => {{
-          e.preventDefault();
-          this.zoom += (e.deltaY > 0) ? -0.08 : 0.08;
-          this.zoom = Math.min(Math.max(this.zoom, 0.3), 3.0);
-          this.apply();
-        }}, {{ passive: false }});
-      }}
-    }}
+        function draw() {{
+            gl.clearColor(1,1,1,0);
+            gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+            const aspect = canvas.width / canvas.height;
+            const fov = 1.0;
+            const near = 0.1;
+            const far = 20.0;
+
+            function persp(a,f,n,r) {{
+                const t = n * Math.tan(f/2);
+                return new Float32Array([
+                    n/t,0,0,0,
+                    0,n/(t/a),0,0,
+                    0,0,-(r+n)/(r-n),-1,
+                    0,0,-(2*r*n)/(r-n),0
+                ]);
+            }}
+
+            function rotX(a) {{ return new Float32Array([
+                1,0,0,0,
+                0, Math.cos(a), -Math.sin(a),0,
+                0, Math.sin(a), Math.cos(a),0,
+                0,0,0,1
+            ]);}}
+
+            function rotY(a) {{ return new Float32Array([
+                Math.cos(a),0, Math.sin(a),0,
+                0,1,0,0,
+                -Math.sin(a),0, Math.cos(a),0,
+                0,0,0,1
+            ]);}}
+
+            const proj = persp(aspect, fov, near, far);
+            const rx = rotX(rotationX);
+            const ry = rotY(rotationY);
+
+            // Combine matrices proj * ry * rx
+            let mvp = new Float32Array(16);
+            function mul(a,b){
+                const o=new Float32Array(16);
+                for (let i=0;i<4;i++)
+                for (let j=0;j<4;j++){{
+                    o[i*4+j]=0;
+                    for (let k=0;k<4;k++)
+                        o[i*4+j]+=a[i*4+k]*b[k*4+j];
+                }}
+                return o;
+            }
+            mvp = mul(proj, mul(ry, rx));
+
+            const loc = gl.getUniformLocation(program,"mvp");
+            gl.uniformMatrix4fv(loc,false,mvp);
+
+            gl.drawElements(gl.LINES, lines.length, gl.UNSIGNED_SHORT, 0);
+
+            requestAnimationFrame(draw);
+        }
+        draw();
+    }})();
 
     const cbMin = document.body.getAttribute("data-cb-min");
     const cbMax = document.body.getAttribute("data-cb-max");
@@ -465,8 +492,6 @@ def _render_cube_html(
       const maxEl = document.getElementById("cb-max");
       if (maxEl) maxEl.innerText = cbMax;
     }}
-
-    new CubeScene();
   </script>
 </body>
 </html>
