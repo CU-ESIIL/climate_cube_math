@@ -149,6 +149,10 @@ def _render_cube_html(
     y_meta = axis_meta.get("y", {})
     fig_id = uuid.uuid4().hex
 
+    rot_x = getattr(coord, "elev", 30.0)
+    rot_y = getattr(coord, "azim", 45.0)
+    zoom = getattr(coord, "zoom", 1.0)
+
     html = f"""
 <!DOCTYPE html>
 <html lang=\"en\">
@@ -342,7 +346,7 @@ def _render_cube_html(
     }}
   </style>
 </head>
-<body data-cb-min=\"{color_limits[0]:.2f}\" data-cb-max=\"{color_limits[1]:.2f}\">\n\
+<body data-cb-min=\"{color_limits[0]:.2f}\" data-cb-max=\"{color_limits[1]:.2f}\" data-rot-x=\"{rot_x:.1f}\" data-rot-y=\"{rot_y:.1f}\" data-zoom=\"{zoom}\">\n\
   <div class=\"cube-figure\" id=\"cube-figure\">{title_html}
     <div class=\"cube-main\">
       <div class=\"cube-inner\" id=\"cube-inner\">
@@ -432,8 +436,10 @@ def _render_cube_html(
         gl.enableVertexAttribArray(posLoc);
         gl.vertexAttribPointer(posLoc, 3, gl.FLOAT, false, 0, 0);
 
-        let rotationX = 0.7;
-        let rotationY = 0.8;
+        const body = document.body;
+        let rotationX = (parseFloat(body.getAttribute("data-rot-x")) || 0) * Math.PI / 180;
+        let rotationY = (parseFloat(body.getAttribute("data-rot-y")) || 0) * Math.PI / 180;
+        const zoom = parseFloat(body.getAttribute("data-zoom")) || 1;
 
         let dragging = false;
         let lastX = 0, lastY = 0;
@@ -492,8 +498,14 @@ def _render_cube_html(
             const proj = persp(aspect, fov, near, far);
             const rx = rotX(rotationX);
             const ry = rotY(rotationY);
+            const scale = new Float32Array([
+                1/zoom,0,0,0,
+                0,1/zoom,0,0,
+                0,0,1/zoom,0,
+                0,0,0,1
+            ]);
 
-            // Combine matrices proj * ry * rx
+            // Combine matrices proj * scale * ry * rx
             let mvp = new Float32Array(16);
             function mul(a,b) {{
                 const o=new Float32Array(16);
@@ -505,7 +517,7 @@ def _render_cube_html(
                 }}
                 return o;
             }}
-            mvp = mul(proj, mul(ry, rx));
+            mvp = mul(proj, mul(scale, mul(ry, rx)));
 
             const loc = gl.getUniformLocation(program,"mvp");
             gl.uniformMatrix4fv(loc,false,mvp);
