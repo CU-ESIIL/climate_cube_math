@@ -17,7 +17,7 @@ class _CubeProgress:
         if self.enabled:
             html = self._render(0.0)
             handle = display(HTML(html), display_id=True)
-            self.display_id = handle.display_id
+            self.display_id = getattr(handle, "display_id", None)
             self._handle = handle
 
     def _render(self, pct: float) -> str:
