@@ -110,23 +110,14 @@ def plot(
     time_dim: str | None = "time",
     cmap: str = "viridis",
     clim: tuple[float, float] | None = None,
-    aspect: str = "equal",
-    kind: str = "auto",
     **kwargs,
 ):
     """Convenience helper for plotting a 3D cube without using the pipe."""
-
-    vmin, vmax = (None, None) if clim is None else clim
-    plot_kwargs = {"aspect": aspect, **kwargs}
-    if vmin is not None:
-        plot_kwargs["vmin"] = vmin
-    if vmax is not None:
-        plot_kwargs["vmax"] = vmax
 
     return _plot_verb(
         cube,
         time_dim=time_dim,
         cmap=cmap,
-        kind=kind,
-        **plot_kwargs,
+        clim=clim,
+        **kwargs,
     )
