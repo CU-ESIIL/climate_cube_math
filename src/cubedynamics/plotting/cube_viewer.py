@@ -236,9 +236,17 @@ def _render_cube_html(
 
     .axis-label {{
       position: absolute;
-      font-size: 13px;
-      color: rgba(0,0,0,0.45);
+      font-size: var(--cube-axis-font-size, 13px);
+      color: var(--cube-axis-color);
       pointer-events: none;
+    }}
+
+    .cube-label {{
+      position: absolute;
+      font-size: var(--cube-axis-font-size, 13px);
+      color: var(--cube-axis-color);
+      pointer-events: none;
+      letter-spacing: 0.04em;
     }}
 
     /* Tight to each cube face */
@@ -344,15 +352,15 @@ def _render_cube_html(
             {interior_html}
           </div>
 
-          <div class=\"axis-label axis-x-min\">{x_meta.get('min','')}</div>
-          <div class=\"axis-label axis-x-max\">{x_meta.get('max','')}</div>
-          <div class=\"axis-label axis-y-min\">{y_meta.get('min','')}</div>
-          <div class=\"axis-label axis-y-max\">{y_meta.get('max','')}</div>
-          <div class=\"axis-label axis-t-min\">{time_meta.get('min','')}</div>
-          <div class=\"axis-label axis-t-max\">{time_meta.get('max','')}</div>
-          <div class=\"axis-label axis-x-name\">{x_meta.get('name','')}</div>
-          <div class=\"axis-label axis-y-name\">{y_meta.get('name','')}</div>
-          <div class=\"axis-label axis-t-name\">{time_meta.get('name','')}</div>
+          <div class=\"axis-label cube-label cube-label-x axis-x-min\">{x_meta.get('min','')}</div>
+          <div class=\"axis-label cube-label cube-label-x axis-x-max\">{x_meta.get('max','')}</div>
+          <div class=\"axis-label cube-label cube-label-y axis-y-min\">{y_meta.get('min','')}</div>
+          <div class=\"axis-label cube-label cube-label-y axis-y-max\">{y_meta.get('max','')}</div>
+          <div class=\"axis-label cube-label cube-label-time axis-t-min\">{time_meta.get('min','')}</div>
+          <div class=\"axis-label cube-label cube-label-time axis-t-max\">{time_meta.get('max','')}</div>
+          <div class=\"axis-label cube-label cube-label-x axis-x-name\">{x_meta.get('name','')}</div>
+          <div class=\"axis-label cube-label cube-label-y axis-y-name\">{y_meta.get('name','')}</div>
+          <div class=\"axis-label cube-label cube-label-time axis-t-name\">{time_meta.get('name','')}</div>
         </div>
       </div>
     </div>
