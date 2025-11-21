@@ -1,5 +1,7 @@
 # Vase Volumes & Arbitrary 3-D Subsets
 
+> This page is kept for backward compatibility. See the updated [Vase Volumes guide](vase_volumes.md) for the latest streaming-first examples and API notes.
+
 Vase volumes let you describe arbitrary 3-D regions inside a cube using time-stamped 2-D polygons. A `VaseDefinition` lists cross-sections through `(x, y)`; lofting them across the cube's time dimension produces a 3-D hull. `build_vase_mask` converts that hull into a boolean mask over the cube grid so you can extract, visualize, and share just the voxels you care about.
 
 ## Concept: time-stamped polygons become 3-D hulls

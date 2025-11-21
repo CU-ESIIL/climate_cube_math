@@ -77,10 +77,10 @@ def plot(
 ):
     """Plot a cube or return a plotting verb.
 
-    When ``da`` is provided this function builds a :class:`CubePlot` and passes
-    the original object through unchanged so pipe chains can continue. Without a
-    ``da`` argument a :class:`~cubedynamics.piping.Verb` is returned for use with
-    ``pipe(...) | v.plot(...)``.
+    The helper builds a streaming-first :class:`CubePlot` and returns it so pipe
+    chains (``pipe(cube) | v.plot()``) can continue with the viewer object. When
+    used as a verb (no ``da`` argument), it can be composed in pipes and the
+    resulting :class:`CubePlot` is available via ``.unwrap()``.
     """
 
     opts = PlotOptions(
@@ -141,9 +141,6 @@ def plot(
         return cube
 
     verb = Verb(_plot)
-    verb._cd_passthrough_on_pipe = True
-    verb._cd_passthrough_on_call = True
     if da is None:
         return verb
-    verb(da)
-    return da
+    return verb(da)

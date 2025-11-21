@@ -28,6 +28,16 @@ ndvi = cd.ndvi(
 trend = pipe(ndvi) | v.mean(dim=("y", "x"))
 ```
 
+### What can I see?
+
+```python
+from cubedynamics import pipe, verbs as v
+
+pipe(ndvi) | v.plot(title="NDVI cube (streaming)")
+```
+
+The default viewer keeps axes tight around the cube, shows a bottom colorbar, and overlays vase outlines automatically when `attrs["vase"]` is present. *(Screenshot placeholder: cube with tight axes + green vase overlay.)*
+
 Turn the bar off when you prefer a quiet log:
 
 ```python

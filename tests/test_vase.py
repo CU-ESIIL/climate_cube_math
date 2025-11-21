@@ -1,8 +1,11 @@
 import numpy as np
 import pytest
 import xarray as xr
-from shapely.geometry import Polygon
+from shapely.geometry import Point, Polygon
 
+from cubedynamics import verbs as v
+from cubedynamics.piping import pipe
+from cubedynamics.plotting import CubePlot
 from cubedynamics.vase import VaseDefinition, VaseSection, _polygon_at_time, build_vase_mask
 
 
@@ -96,3 +99,25 @@ def test_build_vase_mask_with_dask_streaming():
     assert mask.shape == (len(times), len(ys), len(xs))
     assert mask.dtype == bool
     assert mask.all()
+
+
+def test_vase_pipeline_and_viewer():
+    cube = xr.DataArray(
+        np.arange(300).reshape(3, 10, 10),
+        dims=("time", "y", "x"),
+        coords={"time": np.arange(3), "y": np.arange(10), "x": np.arange(10)},
+    )
+    circle_small = Point(5, 5).buffer(3.0)
+    circle_big = Point(5, 5).buffer(5.0)
+    vase = VaseDefinition(
+        [VaseSection(time=0, polygon=circle_small), VaseSection(time=2, polygon=circle_big)],
+        interp="nearest",
+    )
+
+    vase_cube = v.vase_extract(cube, vase)
+    assert "vase" in vase_cube.attrs
+    assert vase_cube.count() > 0
+    assert (vase_cube.isnull().sum() > 0).item()
+
+    result = (pipe(vase_cube) | v.plot()).unwrap()
+    assert isinstance(result, CubePlot)

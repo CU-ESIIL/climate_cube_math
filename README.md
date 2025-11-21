@@ -35,6 +35,23 @@ ndvi = cd.ndvi(lat=40.0, lon=-105.25, start="2018-01-01", end="2019-12-31")
 )
 ```
 
+## Quickstart: 3-D cube viewer
+
+```python
+import cubedynamics as cd
+from cubedynamics import pipe, verbs as v
+
+# Example: load an NDVI cube (time, y, x)
+ndvi = cd.load_example_ndvi_cube()  # or use an existing helper
+
+pipe(ndvi) | v.plot(title="NDVI")
+```
+
+`v.plot()` is a high-level, streaming-first 3-D viewer. Under the hood it builds a
+`CubePlot` (grammar-of-graphics) and routes frames through the streaming renderer so
+you can keep working with in-memory arrays, dask-backed cubes, or `VirtualCube`
+streams.
+
 ## Why a grammar of graphics for climate cubes?
 
 Climate cubes are small stacks of maps through time (typically `(time, y, x)` and optional `band`). A grammar keeps the visualization expressive while staying readable:
@@ -110,35 +127,44 @@ See the [CubePlot Grammar of Graphics](docs/cubeplot_grammar.md) and the [Stream
 ## Vase Volumes: Cutting 3-D Shapes Out of Climate Cubes
 
 A **vase volume** is a time-varying polygon cross-section over `(x, y)` that traces out a 3-D hull as it moves through `(time, y, x)`.
-Use `VaseDefinition` and `build_vase_mask` to turn those polygons into a boolean mask that can be applied to any cube. Once defined you can
-extract voxels inside the vase, plot them with the grammar-of-graphics, and overlay outlines in the cube viewer—without changing the
-default simplicity of `pipe(cube) | v.plot()`.
+Use `VaseDefinition` to describe the polygons, `v.vase_extract(...)` to mask the cube, and let `v.plot()`
+auto-detect and overlay the vase outline.
 
 ```python
-from cubedynamics import pipe, verbs as v
-from cubedynamics.vase import VaseDefinition, VaseSection
+import numpy as np
 import shapely.geometry as geom
-
-# 1. Define a simple vase with two time slices
-vase = VaseDefinition([
-    VaseSection(time="2020-01-01", polygon=geom.Point(0, 0).buffer(1.0)),  # small circle
-    VaseSection(time="2020-12-31", polygon=geom.Point(0, 0).buffer(2.0)),  # larger circle
-])
-
-# 2. Build mask and extract the vase volume
-vase_cube = pipe(cube) | v.vase_extract(vase)
-
-# 3. Plot with cube viewer and outline the vase region
+from cubedynamics import pipe, verbs as v
 from cubedynamics.plotting import CubePlot
+from cubedynamics.vase import VaseSection, VaseDefinition
 
+cube = ndvi  # DataArray (time, y, x)
+
+t0, t1 = cube.time.values[[0, -1]]
+y_center = float(cube.y.mean())
+x_center = float(cube.x.mean())
+radius = 0.2 * min(float(cube.x.max()-cube.x.min()),
+                  float(cube.y.max()-cube.y.min()))
+
+poly_t0 = geom.Point(x_center, y_center).buffer(radius)
+poly_t1 = geom.Point(x_center, y_center).buffer(1.5 * radius)
+
+sections = [VaseSection(time=t0, polygon=poly_t0),
+            VaseSection(time=t1, polygon=poly_t1)]
+vase = VaseDefinition(sections=sections, interp="nearest")
+
+vase_cube = v.vase_extract(cube, vase)
+
+# High-level pilot viewer
+pipe(vase_cube) | v.plot(title="NDVI inside vase")
+
+# Grammar-of-graphics control
 p = (CubePlot(cube)
      .stat_vase(vase)
      .geom_cube()
-     .geom_vase_outline(color="limegreen", alpha=0.7))
-
-p  # display in a notebook
+     .geom_vase_outline(color="limegreen", alpha=0.6))
+p
 ```
 
-- **Streaming-first**: masks are computed per time slice without loading the whole cube into memory.
-- **Viewer + viz**: `geom_vase_outline` tints cube faces; scientific 3-D helpers in `vase_viz` offer PyVista/Trimesh workflows.
-- **Defaults intact**: the baseline still starts with `pipe(cube) | v.plot()`, with vase volumes layered on when needed.
+- Vases are analytic volumes in `(time, y, x)` defined by polygons through time.
+- `v.vase_extract` masks the cube and attaches the vase definition in `attrs["vase"]`.
+- `v.plot()` auto-detects `attrs["vase"]` and adds the outline overlay.

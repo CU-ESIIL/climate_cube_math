@@ -3,9 +3,10 @@ import pandas as pd
 import xarray as xr
 
 from cubedynamics import verbs as v
+from cubedynamics.plotting import CubePlot
 
 
-def test_plot_returns_original_cube():
+def test_plot_returns_cubeplot_from_direct_call():
     times = pd.date_range("2024-01-01", periods=3, freq="D")
     data = xr.DataArray(
         np.ones((3, 2, 2)),
@@ -16,5 +17,4 @@ def test_plot_returns_original_cube():
 
     result = v.plot()(data)
 
-    # The verb should return the original DataArray so pipes can continue.
-    assert result is data
+    assert isinstance(result, CubePlot)

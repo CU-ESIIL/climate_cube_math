@@ -2,6 +2,31 @@
 
 Climate cubes use a ggplot-inspired grammar so you can build 3D visualizations layer by layer. The grammar mirrors **data → aes → stat → geom → scale → coord → theme → facet → annotation**.
 
+## High-level: `v.plot()`
+
+- `v.plot()` is shorthand for `CubePlot(da).geom_cube().theme_cube_studio(tight_axes=True)` plus a vase overlay when `attrs["vase"]` is attached.
+- It returns a :class:`~cubedynamics.plotting.CubePlot` object; Jupyter renders it automatically—no `display()` call required.
+- The viewer is safe for dask-backed arrays and `VirtualCube` slices; it should not call `.values` on the full cube, only on streamed frames.
+
+Use it for quicklooks:
+
+```python
+from cubedynamics import pipe, verbs as v
+
+pipe(cube) | v.plot(title="NDVI")
+```
+
+Then graduate to the full grammar for control:
+
+```python
+from cubedynamics.plotting import CubePlot
+
+p = (CubePlot(cube)
+     .geom_cube()
+     .coord_cube(elev=25, azim=60)
+     .theme_cube_studio(tight_axes=True))
+```
+
 ## Core pieces
 
 - **Data**: any xarray `DataArray` or `VirtualCube`
@@ -19,16 +44,27 @@ Climate cubes use a ggplot-inspired grammar so you can build 3D visualizations l
 - **Stats (`stat_vase`)**: applies `build_vase_mask` to attach a masked cube **and** the vase mask for downstream layers.
 - **Geoms (`geom_vase_outline`)**: instructs the viewer to tint cube faces where the vase touches each slice.
 
-See [Vase Volumes & Arbitrary 3-D Subsets](vase-volumes.md) for a walkthrough of defining vases and combining these layers with `geom_cube`.
+See [Vase Volumes & Arbitrary 3-D Subsets](vase_volumes.md) for a walkthrough of defining vases and combining these layers with `geom_cube`.
 
 ## Minimal example
+
+Start with the high-level viewer:
 
 ```python
 from cubedynamics import pipe, verbs as v
 
-(pipe(cube)
- | v.plot(title="NDVI cube")
-)
+pipe(cube) | v.plot(title="NDVI cube")
+```
+
+When you need more control, expand to the grammar:
+
+```python
+from cubedynamics.plotting import CubePlot
+
+p = (CubePlot(cube)
+     .geom_cube()
+     .coord_cube(elev=35, azim=45)
+     .theme_cube_studio(tight_axes=True))
 ```
 
 ## Layered example
