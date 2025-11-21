@@ -6,14 +6,14 @@ site_url: "https://cu-esiil.github.io/climate_cube_math/"
 nav:
   - Home: index.md
   - Quickstart: getting_started.md
+  - Plotting & Viewer:
+      - 3D Cube Grammar: cubeplot_grammar.md
+      - Streaming Renderer: streaming_renderer.md
+      - Vase Volumes: vase_volumes.md
   - Climate cubes: climate_cubes.md
   - Semantic variable loaders: semantic_variables.md
   - Virtual Cubes: virtual_cubes.md
-  - Streaming Large Data: streaming_large_data.md
-  - Streaming-First Renderer: streaming_renderer.md
-  - Vase Volumes: vase-volumes.md
   - Pipe syntax & verbs: pipe_verbs.md
-  - Grammar of Graphics for CubePlots: cubeplot_grammar.md
   - Operations:
       - Transform verbs: ops_transforms.md
       - Stats verbs: ops_stats.md

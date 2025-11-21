@@ -1,6 +1,6 @@
 # Streaming-First Rendering & Huge Data
 
-The cube viewer is designed for massive NEON, Sentinel-2, PRISM, and gridMET cubes. It iterates over time slices and never materializes the full cube in memory.
+The cube viewer is designed for massive NEON, Sentinel-2, PRISM, and gridMET cubes. It iterates over time slices and never materializes the full cube in memory. **`v.plot()` and `CubePlot` are streaming-first by design.**
 
 ## Why streaming?
 
@@ -10,14 +10,14 @@ The cube viewer is designed for massive NEON, Sentinel-2, PRISM, and gridMET cub
 
 ## How it works
 
-- Uses `VirtualCube` and dask-backed DataArrays lazily
-- Iterates over time frames: `for t in range(0, nt, thin_time_factor)`
-- Extracts only 2D slices per iteration (`frame.values` for the selected time)
-- Combines min/max ranges after all slices for consistent color scales
-- Shows a progress indicator (`progress_style="bar"` or `"pulse"`)
+- Works against dask-backed xarray DataArrays **and** streaming `VirtualCube` sources.
+- Iterates over time frames: `for t in range(0, nt, thin_time_factor)`.
+- Extracts only 2D slices per iteration (frame-sized `.values` are OK; full-cube `.values` are not).
+- Combines min/max ranges after all slices for consistent color scales without materializing the cube.
+- Shows a progress indicator (`progress_style="bar"` or `"pulse"`).
 
 Vase volumes reuse the same pattern: `build_vase_mask` walks time slices using coordinates only, so face overlays from
-`geom_vase_outline` keep the streaming pipeline intact. See [Vase Volumes & Arbitrary 3-D Subsets](vase-volumes.md) for details.
+`geom_vase_outline` keep the streaming pipeline intact. See [Vase Volumes & Arbitrary 3-D Subsets](vase_volumes.md) for details.
 
 ## Faceting with streaming
 
@@ -43,3 +43,10 @@ Each facet panel pulls only its own slices, so you can fan out scenarios without
 ## Streaming progress in Jupyter
 
 When `show_progress=True`, the renderer streams slices and displays a live progress bar. It is safe to interrupt and restart without corrupting the cube.
+
+## Do / Don't for streaming safety
+
+- ✅ Use xarray methods like `.isel`, `.chunk`, and `.compute()` inside targeted helper functions where you control memory.
+- ✅ Pass `thin_time_factor` or other downsampling parameters when you want lightweight previews.
+- ❌ Don't call `.values` or `np.asarray()` on the **entire** cube within plotting or verb code; rely on streamed frames instead.
+- ❌ Don't coerce dask arrays to NumPy arrays unless the path is explicitly documented for small cubes.
