@@ -80,6 +80,7 @@ This call:
 - Extracts three faces of the cube: a map face at the most recent timestep, a time–y curtain at x=0, and a time–x curtain at y=max.
 - Applies a colormap and unified color scaling based on the 2nd and 98th percentiles of all face values.
 - Renders a CSS 3D cube that you can rotate (drag) and zoom (scroll) with a colorbar at the bottom.
+- Lets you drag anywhere in the cube frame (including over the faces) to rotate; the drag surface captures the pointer so rotation keeps updating even if your cursor leaves the canvas mid-gesture.
 
 ### Viewer experience
 

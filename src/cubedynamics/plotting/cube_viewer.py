@@ -429,6 +429,7 @@ def _render_cube_html(
     (function() {{
         const canvas = document.getElementById("cube-canvas-{fig_id}");
         const cubeRotation = document.getElementById("cube-rotation-{fig_id}");
+        const dragSurface = document.getElementById("cube-wrapper-{fig_id}") || canvas;
         const gl = canvas.getContext("webgl");
 
         const body = document.body;
@@ -499,13 +500,24 @@ def _render_cube_html(
         let dragging = false;
         let lastX = 0, lastY = 0;
 
-        canvas.addEventListener("pointerdown", e => {{
-            dragging = true;
-            lastX = e.clientX;
-            lastY = e.clientY;
-        }});
+        if (dragSurface) {{
+            dragSurface.style.cursor = "grab";
+            dragSurface.addEventListener("pointerdown", e => {{
+                dragging = true;
+                dragSurface.setPointerCapture(e.pointerId);
+                dragSurface.style.cursor = "grabbing";
+                lastX = e.clientX;
+                lastY = e.clientY;
+            }});
+        }}
 
-        window.addEventListener("pointerup", () => dragging = false);
+        window.addEventListener("pointerup", e => {{
+            dragging = false;
+            if (dragSurface && dragSurface.hasPointerCapture(e.pointerId)) {{
+                dragSurface.releasePointerCapture(e.pointerId);
+                dragSurface.style.cursor = "grab";
+            }}
+        }});
 
         window.addEventListener("pointermove", e => {{
             if (!dragging) return;
