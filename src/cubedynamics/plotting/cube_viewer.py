@@ -166,6 +166,7 @@ def _render_cube_html(
     rot_x = getattr(coord, "elev", 30.0)
     rot_y = getattr(coord, "azim", 45.0)
     zoom = getattr(coord, "zoom", 1.0)
+    initial_transform = f"rotateX({rot_x:.4f}deg) rotateY({rot_y:.4f}deg) scale({1/zoom})"
 
     html = f"""
 <!DOCTYPE html>
@@ -401,7 +402,7 @@ def _render_cube_html(
         <div class=\"cube-container\">
           <div id=\"cube-wrapper-{fig_id}\" class=\"cube-wrapper\">
             <canvas class=\"cube-canvas\" id=\"cube-canvas-{fig_id}\"></canvas>
-            <div class=\"cube-rotation\" id=\"cube-rotation-{fig_id}\">
+            <div class=\"cube-rotation\" id=\"cube-rotation-{fig_id}\" style=\"transform: {initial_transform};\">
               {cube_faces_html}
               {interior_html}
             </div>
@@ -428,6 +429,7 @@ def _render_cube_html(
     (function() {{
         const canvas = document.getElementById("cube-canvas-{fig_id}");
         const cubeRotation = document.getElementById("cube-rotation-{fig_id}");
+        const dragSurface = document.getElementById("cube-wrapper-{fig_id}") || canvas;
         const gl = canvas.getContext("webgl");
 
         const body = document.body;
@@ -498,13 +500,24 @@ def _render_cube_html(
         let dragging = false;
         let lastX = 0, lastY = 0;
 
-        canvas.addEventListener("pointerdown", e => {{
-            dragging = true;
-            lastX = e.clientX;
-            lastY = e.clientY;
-        }});
+        if (dragSurface) {{
+            dragSurface.style.cursor = "grab";
+            dragSurface.addEventListener("pointerdown", e => {{
+                dragging = true;
+                dragSurface.setPointerCapture(e.pointerId);
+                dragSurface.style.cursor = "grabbing";
+                lastX = e.clientX;
+                lastY = e.clientY;
+            }});
+        }}
 
-        window.addEventListener("pointerup", () => dragging = false);
+        window.addEventListener("pointerup", e => {{
+            dragging = false;
+            if (dragSurface && dragSurface.hasPointerCapture(e.pointerId)) {{
+                dragSurface.releasePointerCapture(e.pointerId);
+                dragSurface.style.cursor = "grab";
+            }}
+        }});
 
         window.addEventListener("pointermove", e => {{
             if (!dragging) return;

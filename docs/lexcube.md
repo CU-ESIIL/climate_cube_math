@@ -55,6 +55,7 @@ This call:
 - Renders a CSS 3D cube that you can:
   - Click-and-drag to rotate.
   - Scroll to zoom.
+  - Drag anywhere inside the cube frame (faces or transparent padding); pointer capture keeps the rotation responsive even if the cursor slips past the cube during the drag.
 - Displays a colorbar at the bottom with dynamic min/max labels.
 - Adds Lexcube-style axis labels around the cube, with axis names near the edges and min/max tick labels tucked beside each axis rather than in a tall block below the viewer.
 - Streams progress inline in the notebook cell without a blocking loading overlay, so subsequent cells stay responsive while faces are being encoded.
