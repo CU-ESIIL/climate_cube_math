@@ -7,8 +7,11 @@ imports working we re-export the cubedynamics API here while still exposing
 the legacy demo helpers.
 """
 
+import cubedynamics as _cubedynamics
+
 from cubedynamics import *  # noqa: F401,F403 - intentionally mirror the API
-from cubedynamics import __all__ as _cubedynamics_all
+
+_cubedynamics_all = getattr(_cubedynamics, "__all__", tuple())
 
 from .demo import make_demo_event
 from .hulls import plot_ruled_time_hull
