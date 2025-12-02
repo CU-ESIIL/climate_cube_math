@@ -14,10 +14,21 @@ from ..ops.transforms import month_filter
 from .custom import apply
 from .flatten import flatten_cube, flatten_space
 from .models import fit_model
-from .landsat_mpc import landsat8_mpc
 from .plot import plot
 from .vase import vase_extract, vase_mask
 from .stats import anomaly, mean, rolling_tail_dep_vs_center, variance, zscore
+
+
+def landsat8_mpc(*args, **kwargs):
+    """Lazy import wrapper for the Landsat MPC helper.
+
+    Avoids importing optional heavy dependencies (e.g., rioxarray) unless the
+    verb is actually invoked.
+    """
+
+    from .landsat_mpc import landsat8_mpc as _landsat8_mpc
+
+    return _landsat8_mpc(*args, **kwargs)
 
 
 def show_cube_lexcube(**kwargs):

@@ -1,6 +1,8 @@
 import importlib.util
+import importlib
 import sys
 import types
+from contextlib import contextmanager
 from pathlib import Path
 
 import numpy as np
@@ -18,19 +20,30 @@ def _load_module(name: str, path: Path):
     return module
 
 
-# Stub the package to avoid importing heavy optional dependencies from cubedynamics.__init__
-sys.modules["cubedynamics"] = types.ModuleType("cubedynamics")
-sys.modules["cubedynamics"].__path__ = [str(ROOT / "src" / "cubedynamics")]
+@contextmanager
+def _stub_cube_viewer():
+    saved_modules = {k: v for k, v in sys.modules.items() if k.startswith("cubedynamics")}
 
-_load_module("cubedynamics.utils", ROOT / "src" / "cubedynamics" / "utils" / "__init__.py")
-_load_module(
-    "cubedynamics.plotting.progress", ROOT / "src" / "cubedynamics" / "plotting" / "progress.py"
-)
+    sys.modules["cubedynamics"] = types.ModuleType("cubedynamics")
+    sys.modules["cubedynamics"].__path__ = [str(ROOT / "src" / "cubedynamics")]
 
-cube_viewer = _load_module(
-    "cubedynamics.plotting.cube_viewer", ROOT / "src" / "cubedynamics" / "plotting" / "cube_viewer.py"
-)
-cube_from_dataarray = cube_viewer.cube_from_dataarray
+    _load_module("cubedynamics.utils", ROOT / "src" / "cubedynamics" / "utils" / "__init__.py")
+    _load_module(
+        "cubedynamics.plotting.progress", ROOT / "src" / "cubedynamics" / "plotting" / "progress.py"
+    )
+
+    cube_viewer = _load_module(
+        "cubedynamics.plotting.cube_viewer",
+        ROOT / "src" / "cubedynamics" / "plotting" / "cube_viewer.py",
+    )
+
+    try:
+        yield cube_viewer.cube_from_dataarray
+    finally:
+        for name in list(sys.modules):
+            if name.startswith("cubedynamics"):
+                sys.modules.pop(name, None)
+        sys.modules.update(saved_modules)
 
 
 def test_cube_viewer_band_dim_defaults_to_first_band(tmp_path):
@@ -47,11 +60,12 @@ def test_cube_viewer_band_dim_defaults_to_first_band(tmp_path):
         name="test_cube",
     )
 
-    html = cube_from_dataarray(
-        da,
-        out_html=str(tmp_path / "test_cube.html"),
-        return_html=True,
-    )
+    with _stub_cube_viewer() as cube_from_dataarray:
+        html = cube_from_dataarray(
+            da,
+            out_html=str(tmp_path / "test_cube.html"),
+            return_html=True,
+        )
 
     assert isinstance(html, str)
     assert "html" in html.lower()

@@ -1,7 +1,16 @@
+import sys
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 import pytest
 import xarray as xr
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+SRC_PATH = PROJECT_ROOT / "src"
+SRC_STR = str(SRC_PATH)
+if SRC_STR not in sys.path:
+    sys.path.insert(0, SRC_STR)
 
 from cubedynamics import pipe, verbs as v
 from cubedynamics.streaming import VirtualCube
