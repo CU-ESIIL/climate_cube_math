@@ -45,3 +45,11 @@ pipe(red) | v.plot(time_dim="time")
 - **Rotate:** click-and-drag anywhere in the cube frame (faces or the transparent padding). The drag surface captures the pointer so rotation keeps flowing even if the cursor leaves the canvas mid-drag.
 - **Zoom:** use a trackpad pinch gesture or mouse scroll to zoom the cube in/out.
 - **Reset view:** rerun the cell or reload the saved HTML; the cube opens with the initial azimuth/elevation set in `coord_cube`.
+
+#### Expected interaction behavior
+
+- The cube keeps a fixed aspect ratio; rotation is applied about the cube’s center rather than skewing or shearing the geometry.
+- Zooming moves the cube closer to the camera (scales up) so faces become larger and reveal more detail instead of shrinking away from view.
+- If you notice the cube stretching or the zoom moving it farther away, reopen the notebook output in DevTools and verify that `scaleMatrix` is being updated with the current zoom factor in `cube_viewer.js` (see `cube_viewer.py` for the embedded script) and that the drag surface is present on top of the canvas.
+
+If rotation or zoom stop responding, open the browser console and look for `[CubeViewer] drag …` logs. Missing logs usually indicate that notebook scripting is blocked or the drag surface did not render. See `docs/viewer_debug_notes.md` for deeper debugging steps and known interaction regressions.

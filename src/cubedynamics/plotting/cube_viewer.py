@@ -214,7 +214,7 @@ def _render_cube_html(
     rot_x = getattr(coord, "elev", 30.0)
     rot_y = getattr(coord, "azim", 45.0)
     zoom = getattr(coord, "zoom", 1.0)
-    initial_transform = f"rotateX({rot_x:.4f}deg) rotateY({rot_y:.4f}deg) scale({1/zoom})"
+    initial_transform = f"rotateX({rot_x:.4f}deg) rotateY({rot_y:.4f}deg) scale({zoom})"
 
     html = f"""
 <!DOCTYPE html>
@@ -556,58 +556,122 @@ def _render_cube_html(
 
         function applyCubeRotation() {{
             if (!cubeRotation) return;
-            cubeRotation.style.transform = 'rotateX(' + rotationX + 'rad) rotateY(' + rotationY + 'rad) scale(' + (1/zoom) + ')';
+            cubeRotation.style.transform = 'rotateX(' + rotationX + 'rad) rotateY(' + rotationY + 'rad) scale(' + zoom + ')';
         }}
 
         applyCubeRotation();
 
         let dragging = false;
         let lastX = 0, lastY = 0;
-        let onPointerMove = null;
 
         function stopDragging(e) {{
             if (!dragging) return;
             dragging = false;
-            if (dragSurface && dragSurface.hasPointerCapture(e.pointerId)) {{
-                dragSurface.releasePointerCapture(e.pointerId);
+            if (
+                dragSurface &&
+                e &&
+                typeof dragSurface.hasPointerCapture === "function" &&
+                e.pointerId !== undefined &&
+                dragSurface.hasPointerCapture(e.pointerId)
+            ) {{
+                try {{
+                    dragSurface.releasePointerCapture(e.pointerId);
+                }} catch (err) {{
+                    console.warn('[CubeViewer] releasePointerCapture failed', err);
+                }}
             }}
             if (dragSurface) {{
                 dragSurface.style.cursor = "grab";
             }}
         }}
 
+        function handleDragMove(clientX, clientY) {{
+            if (!dragging) return;
+            const dx = clientX - lastX;
+            const dy = clientY - lastY;
+            rotationY += dx * 0.01;
+            rotationX += dy * 0.01;
+            lastX = clientX;
+            lastY = clientY;
+            applyCubeRotation();
+        }}
+
         if (dragSurface) {{
+            const supportsPointer = !!window.PointerEvent;
             dragSurface.style.cursor = "grab";
             dragSurface.style.touchAction = "none";
 
-            onPointerMove = e => {{
-                if (!dragging) return;
-                const dx = e.clientX - lastX;
-                const dy = e.clientY - lastY;
-                rotationY += dx * 0.01;
-                rotationX += dy * 0.01;
-                lastX = e.clientX;
-                lastY = e.clientY;
-                applyCubeRotation();
+            const startDragging = (x, y) => {{
+                dragging = true;
+                lastX = x;
+                lastY = y;
+                dragSurface.style.cursor = "grabbing";
             }};
 
-            dragSurface.addEventListener("pointerdown", e => {{
-                e.preventDefault();
-                e.stopPropagation();
-                dragging = true;
-                lastX = e.clientX;
-                lastY = e.clientY;
-                dragSurface.setPointerCapture(e.pointerId);
-                dragSurface.style.cursor = "grabbing";
-                dragSurface.addEventListener("pointermove", onPointerMove);
-            }});
+            if (supportsPointer) {{
+                const onPointerMove = e => handleDragMove(e.clientX, e.clientY);
+                const endPointerDrag = e => {{
+                    window.removeEventListener("pointermove", onPointerMove);
+                    window.removeEventListener("pointerup", endPointerDrag);
+                    window.removeEventListener("pointercancel", endPointerDrag);
+                    stopDragging(e);
+                }};
 
-            dragSurface.addEventListener("pointerup", e => {{
-                if (onPointerMove) {{
-                    dragSurface.removeEventListener("pointermove", onPointerMove);
-                }}
-                stopDragging(e);
-            }});
+                dragSurface.addEventListener("pointerdown", e => {{
+                    if (!e.isPrimary) return;
+                    e.preventDefault();
+                    e.stopPropagation();
+                    startDragging(e.clientX, e.clientY);
+                    if (typeof dragSurface.setPointerCapture === "function" && e.pointerId !== undefined) {{
+                        try {{
+                            dragSurface.setPointerCapture(e.pointerId);
+                        }} catch (err) {{
+                            console.warn('[CubeViewer] setPointerCapture failed', err);
+                        }}
+                    }}
+                    window.addEventListener("pointermove", onPointerMove);
+                    window.addEventListener("pointerup", endPointerDrag);
+                    window.addEventListener("pointercancel", endPointerDrag);
+                }});
+            }} else {{
+                const onMouseMove = e => handleDragMove(e.clientX, e.clientY);
+                const endMouseDrag = e => {{
+                    window.removeEventListener("mousemove", onMouseMove);
+                    window.removeEventListener("mouseup", endMouseDrag);
+                    stopDragging(e);
+                }};
+
+                dragSurface.addEventListener("mousedown", e => {{
+                    e.preventDefault();
+                    startDragging(e.clientX, e.clientY);
+                    window.addEventListener("mousemove", onMouseMove);
+                    window.addEventListener("mouseup", endMouseDrag);
+                }});
+
+                const onTouchMove = e => {{
+                    if (!e.touches || e.touches.length === 0) return;
+                    const touch = e.touches[0];
+                    handleDragMove(touch.clientX, touch.clientY);
+                }};
+
+                const endTouchDrag = e => {{
+                    window.removeEventListener("touchmove", onTouchMove);
+                    window.removeEventListener("touchend", endTouchDrag);
+                    window.removeEventListener("touchcancel", endTouchDrag);
+                    const endTouch = e.changedTouches ? e.changedTouches[0] : e;
+                    stopDragging(endTouch);
+                }};
+
+                dragSurface.addEventListener("touchstart", e => {{
+                    if (!e.touches || e.touches.length === 0) return;
+                    e.preventDefault();
+                    const touch = e.touches[0];
+                    startDragging(touch.clientX, touch.clientY);
+                    window.addEventListener("touchmove", onTouchMove, {{ passive: false }});
+                    window.addEventListener("touchend", endTouchDrag);
+                    window.addEventListener("touchcancel", endTouchDrag);
+                }}, {{ passive: false }});
+            }}
 
             dragSurface.addEventListener("wheel", e => {{
                 e.preventDefault();
@@ -617,20 +681,6 @@ def _render_cube_html(
                 applyCubeRotation();
             }}, {{ passive: false }});
         }}
-
-        window.addEventListener("pointerup", e => {{
-            if (dragSurface && onPointerMove) {{
-                dragSurface.removeEventListener("pointermove", onPointerMove);
-            }}
-            stopDragging(e);
-        }});
-
-        window.addEventListener("pointercancel", e => {{
-            if (dragSurface && onPointerMove) {{
-                dragSurface.removeEventListener("pointermove", onPointerMove);
-            }}
-            stopDragging(e);
-        }});
 
         if (!gl) {{
             console.warn('[CubeViewer] WebGL unavailable; rendering CSS cube only.');
@@ -736,9 +786,9 @@ def _render_cube_html(
             const rx = rotX(rotationX);
             const ry = rotY(rotationY);
             const scale = new Float32Array([
-                1/zoom,0,0,0,
-                0,1/zoom,0,0,
-                0,0,1/zoom,0,
+                zoom,0,0,0,
+                0,zoom,0,0,
+                0,0,zoom,0,
                 0,0,0,1
             ]);
 
