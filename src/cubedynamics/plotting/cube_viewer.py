@@ -214,7 +214,7 @@ def _render_cube_html(
     rot_x = getattr(coord, "elev", 30.0)
     rot_y = getattr(coord, "azim", 45.0)
     zoom = getattr(coord, "zoom", 1.0)
-    initial_transform = f"rotateX({rot_x:.4f}deg) rotateY({rot_y:.4f}deg) scale({1/zoom})"
+    initial_transform = f"rotateX({rot_x:.4f}deg) rotateY({rot_y:.4f}deg) scale({zoom})"
 
     html = f"""
 <!DOCTYPE html>
@@ -556,17 +556,28 @@ def _render_cube_html(
 
         function applyCubeRotation() {{
             if (!cubeRotation) return;
-            cubeRotation.style.transform = 'rotateX(' + rotationX + 'rad) rotateY(' + rotationY + 'rad) scale(' + (1/zoom) + ')';
+            cubeRotation.style.transform = 'rotateX(' + rotationX + 'rad) rotateY(' + rotationY + 'rad) scale(' + zoom + ')';
         }}
 
         applyCubeRotation();
 
         let dragging = false;
+        let cleanupDragListeners = null;
         let lastX = 0, lastY = 0;
-        let onPointerMove = null;
+        let activePointerId = null;
+        let activeTouchId = null;
+
+        function clearDragListeners() {{
+            if (cleanupDragListeners) {{
+                cleanupDragListeners();
+                cleanupDragListeners = null;
+            }}
+        }}
 
         function stopDragging(e) {{
+            clearDragListeners();
             if (!dragging) return;
+            const pointerId = (e && e.pointerId !== undefined) ? e.pointerId : activePointerId;
             dragging = false;
             if (
                 dragSurface &&
@@ -802,9 +813,9 @@ def _render_cube_html(
             const rx = rotX(rotationX);
             const ry = rotY(rotationY);
             const scale = new Float32Array([
-                1/zoom,0,0,0,
-                0,1/zoom,0,0,
-                0,0,1/zoom,0,
+                zoom,0,0,0,
+                0,zoom,0,0,
+                0,0,zoom,0,
                 0,0,0,1
             ]);
 
