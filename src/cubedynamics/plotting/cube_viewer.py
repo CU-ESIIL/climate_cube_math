@@ -804,7 +804,7 @@ def cube_from_dataarray(
     *,
     legend_title: str | None = None,
     theme: Any | None = None,
-    show_progress: bool = True,
+    show_progress: bool = False,
     progress_style: str = "bar",
     time_dim: str | None = None,
     fill_limits: tuple[float, float] | None = None,
@@ -884,9 +884,20 @@ def cube_from_dataarray(
     top_time_x = np.zeros((nx, nt_eff), dtype="float32")
     bottom_time_x = np.zeros((nx, nt_eff), dtype="float32")
 
+    mid_t = t_indices[len(t_indices) // 2]
+    mid_y = ny // 2
+    mid_x = nx // 2
+
+    first_finite_frame: np.ndarray | None = None
+    first_finite_t: int | None = None
+
     for idx, t_idx in enumerate(t_indices):
         frame = da.isel({t_dim: t_idx}).transpose(y_dim, x_dim)
         arr = frame.values
+
+        if first_finite_frame is None and np.isfinite(arr).any():
+            first_finite_frame = arr
+            first_finite_t = t_idx
 
         if idx == 0:
             back_spatial = np.flip(arr, axis=1)
@@ -902,6 +913,39 @@ def cube_from_dataarray(
     progress.done()
 
     assert front_spatial is not None and back_spatial is not None
+
+    fallback_time_idx = first_finite_t if first_finite_t is not None else mid_t
+    center_spatial = np.asarray(
+        first_finite_frame
+        if first_finite_frame is not None
+        else da.isel({t_dim: fallback_time_idx}).transpose(y_dim, x_dim).values,
+        dtype="float32",
+    )
+    center_x_time = np.asarray(
+        da.isel({x_dim: mid_x, t_dim: t_indices}).transpose(y_dim, t_dim).values,
+        dtype="float32",
+    )
+    center_y_time = np.asarray(
+        da.isel({y_dim: mid_y, t_dim: t_indices}).transpose(x_dim, t_dim).values,
+        dtype="float32",
+    )
+
+    def _ensure_face(face: np.ndarray, fallback: np.ndarray) -> np.ndarray:
+        if not np.isfinite(face).any():
+            face = fallback
+        if np.isnan(face).any():
+            finite_vals = face[np.isfinite(face)]
+            if finite_vals.size:
+                fill_value = float(np.nanmedian(finite_vals))
+                face = np.where(np.isfinite(face), face, fill_value)
+        return face.astype("float32")
+
+    front_spatial = _ensure_face(front_spatial, center_spatial)
+    back_spatial = _ensure_face(back_spatial, center_spatial)
+    left_time_y = _ensure_face(left_time_y, center_x_time)
+    right_time_y = _ensure_face(right_time_y, center_x_time)
+    top_time_x = _ensure_face(top_time_x, center_y_time)
+    bottom_time_x = _ensure_face(bottom_time_x, center_y_time)
 
     all_vals = np.concatenate(
         [

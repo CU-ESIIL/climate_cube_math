@@ -1,6 +1,10 @@
+import base64
+import io
+
 import numpy as np
 import pandas as pd
 import xarray as xr
+from PIL import Image
 
 from cubedynamics.plotting.cube_plot import CubePlot
 from cubedynamics.plotting.cube_viewer import (
@@ -262,3 +266,31 @@ def test_progressive_values_access_is_2d(monkeypatch, tmp_path):
     )
 
     assert "data:image/png;base64" in html
+
+
+def test_faces_fall_back_to_interior_when_shell_is_nan(monkeypatch, tmp_path):
+    data = xr.DataArray(
+        np.full((2, 3, 3), np.nan), dims=("time", "y", "x"), name="nan_shell"
+    )
+    data.loc[{"time": 0, "y": 1, "x": 1}] = 5.0
+
+    captured: dict[str, str] = {}
+
+    def capture(**kwargs):
+        for key in ["front", "back", "left", "right", "top", "bottom"]:
+            captured[key] = kwargs[key]
+        return "<html></html>"
+
+    monkeypatch.setattr("cubedynamics.plotting.cube_viewer._render_cube_html", capture)
+
+    cube_from_dataarray(
+        data,
+        out_html=str(tmp_path / "nan_shell.html"),
+        show_progress=False,
+        return_html=True,
+    )
+
+    for face in ["front", "back", "left", "right", "top", "bottom"]:
+        face_b64 = captured[face].split(",", 1)[1]
+        face_img = np.array(Image.open(io.BytesIO(base64.b64decode(face_b64))))
+        assert face_img[..., :3].max() > 0

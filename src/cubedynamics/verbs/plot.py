@@ -32,6 +32,7 @@ class PlotOptions:
     fig_id: int | None = None
     fig_title: str | None = None
     fig_text: str | None = None
+    show_progress: bool = False
 
 
 @overload
@@ -47,6 +48,7 @@ def plot(
     fig_id: int | None = None,
     fig_title: str | None = None,
     fig_text: str | None = None,
+    show_progress: bool = False,
 ) -> xr.DataArray | VirtualCube:
     ...
 
@@ -63,6 +65,7 @@ def plot(
     fig_id: int | None = None,
     fig_title: str | None = None,
     fig_text: str | None = None,
+    show_progress: bool = False,
 ) -> Verb:
     ...
 
@@ -79,6 +82,7 @@ def plot(
     fig_id: int | None = None,
     fig_title: str | None = None,
     fig_text: str | None = None,
+    show_progress: bool = False,
 ):
     """Plot a cube or return a plotting verb.
 
@@ -98,6 +102,7 @@ def plot(
         fig_id=fig_id,
         fig_title=fig_title,
         fig_text=fig_text,
+        show_progress=show_progress,
     )
 
     def _plot(value: xr.DataArray | VirtualCube):
@@ -108,7 +113,7 @@ def plot(
                 f"Got type {type(da_value)!r}."
             )
 
-        logger.info(
+        logger.debug(
             "v.plot() called with da name=%s dims=%s", getattr(da_value, "name", None), da_value.dims
         )
 
@@ -131,6 +136,7 @@ def plot(
             time_dim=resolved_time,
             fill_scale=ScaleFillContinuous(cmap=opts.cmap, limits=opts.clim),
             fig_title=opts.fig_title,
+            show_progress=opts.show_progress,
         )
 
         # 2. Draw cube

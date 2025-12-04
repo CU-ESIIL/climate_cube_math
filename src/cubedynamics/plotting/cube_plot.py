@@ -403,7 +403,7 @@ class CubePlot(metaclass=_CubePlotMeta):
     x_label: Optional[str] = None
     y_label: Optional[str] = None
     time_dim: Optional[str] = None
-    show_progress: bool = True
+    show_progress: bool = False
     progress_style: str = "bar"
     coord: CoordCube = field(default_factory=CoordCube)
     annotations: List[CubeAnnotation] = field(default_factory=list)
@@ -851,7 +851,7 @@ class CubePlot(metaclass=_CubePlotMeta):
         raise NotImplementedError(f"Unsupported export format '{fmt}'. Supported: html, png (stub)")
 
     def _repr_html_(self) -> str:  # pragma: no cover - exercised in notebooks
-        logger.info("CubePlot._repr_html_ called for %s", getattr(self.data, "name", None))
+        logger.debug("CubePlot._repr_html_ called for %s", getattr(self.data, "name", None))
         return self.to_html()
 
 
