@@ -424,6 +424,8 @@ class CubePlot(metaclass=_CubePlotMeta):
     vase_mask: Optional[xr.DataArray] = None
     vase_outline: Any = None
     axis_meta: Dict[str, Dict[str, str]] = field(default_factory=dict)
+    debug: bool = False
+    viewer_id: Optional[str] = None
 
     def __post_init__(self) -> None:
         if self.aes is None:
@@ -674,6 +676,8 @@ class CubePlot(metaclass=_CubePlotMeta):
                 vase_mask=self.vase_mask,
                 vase_outline=self.vase_outline,
                 axis_meta=axis_meta,
+                fig_id=self.viewer_id,
+                debug=self.debug,
             )
             return viewer_obj
 

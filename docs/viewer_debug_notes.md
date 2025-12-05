@@ -47,6 +47,11 @@ So `v.plot()` still returns a `CubePlot` object. 【27a0d3†L1-L2】
   - If drag motion stutters on multi-touch devices, inspect `activePointerId`/`activeTouchId` in the embedded script to ensure the move handler is gating events to the current pointer ID; stale listeners are cleared at drag start, so seeing multiple active IDs usually means the drag surface never received `pointerup/touchend`.
   - Zoom uses the wheel handler on the drag surface; if scroll-to-zoom stops working, inspect whether the `wheel` listener is blocked by the notebook or page-level scroll container.
 
-## 10. Rotation/zoom expectations (2025-03)
-- Rotation is applied around the cube’s center with a uniform scale matrix; if you see skewing or off-center rotation, inspect `updateTransform()` inside the embedded viewer script and ensure the rotation matrices are composed before applying the zoom scale. 【F:src/cubedynamics/plotting/cube_viewer.py†L425-L452】
-- Zoom should bring the cube closer (larger on screen). In DevTools, watch the logged `zoom` value in the `wheel` handler; if the cube shrinks when you zoom in, confirm the `scaleMatrix` is being updated with `zoom` (not `1/zoom`) before being multiplied into the model-view matrix. 【F:src/cubedynamics/plotting/cube_viewer.py†L388-L430】
+## 10. Rotation/zoom expectations (2025-05)
+- Rotation is applied around the cube’s center via `applyCubeRotation()`; if you see skewing or off-center rotation, inspect the inline handler that updates `rotationX`/`rotationY` during drag gestures before the transform is applied. 【F:src/cubedynamics/plotting/cube_viewer.py†L590-L647】
+- Zoom should bring the cube closer (larger on screen). In DevTools, watch the logged `zoom` value in the `wheel` handler; if the cube shrinks when you zoom in, confirm the exponential zoom factor is clamped between `zoomMin` and `zoomMax`. 【F:src/cubedynamics/plotting/cube_viewer.py†L723-L730】
+
+## 11. Interactivity hooks (2025-05)
+- The root viewer element now carries deterministic IDs (`cube-figure-<id>`) plus `data-debug`/`data-fig-id` attributes so the inline script can always locate the DOM node, even when Jupyter wraps outputs. The debug flag enables `[CubeViewer debug]` console logs for pointer/mouse/touch/wheel events. 【F:src/cubedynamics/plotting/cube_viewer.py†L200-L236】【F:src/cubedynamics/plotting/cube_viewer.py†L529-L596】
+- PointerEvents, mouse, and touch listeners are always attached to the drag surface; wheel zoom uses a non-passive handler to prevent default scrolling. Event logs emit pointer/touch identifiers to help debug Safari or embedded-notebook quirks. 【F:src/cubedynamics/plotting/cube_viewer.py†L597-L705】
+- `_write_demo_html()` emits a standalone `cube_demo.html` with color blocks so developers can validate drag/zoom outside of notebooks before shipping changes. 【F:src/cubedynamics/plotting/cube_viewer.py†L1032-L1072】
