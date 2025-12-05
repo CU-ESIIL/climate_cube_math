@@ -1,93 +1,109 @@
-# Getting started with CubeDynamics
+## Quickstart: A 10-Minute Tour of CubeDynamics
 
-**In plain English:**  
-This guide installs CubeDynamics, shows the pipe `|` rhythm, and now explains how VirtualCube streams very large climate or NDVI requests. You get runnable code you can paste into a notebook and tips for debugging huge pulls.
+This short tour shows how to load a small environmental data cube, run a few common analyses, and explore the results interactively.  
+CubeDynamics treats gridded climate and remote-sensing datasets as **spatiotemporal cubes**:
 
-**What this page helps you do:**  
-- Install CubeDynamics from PyPI or GitHub
-- Run your first pipe + verbs chain
-- Stream and inspect very large cubes with VirtualCube
+```
+V(lat, lon, time)
+```
 
-## Quick install steps
+This structure lets us express environmental questions directly in code—without manually handling rasters, stacks, or time indices.
+
+---
+
+## 1. Install
 
 ```bash
 pip install cubedynamics
-# or the latest main branch
-pip install "git+https://github.com/CU-ESIIL/climate_cube_math.git@main"
 ```
 
-CubeDynamics runs anywhere `xarray` runs: laptops, HPC clusters, or hosted notebooks.
+---
 
-## First streaming pipeline
+## 2. Load a small NDVI cube
+
+Here we load a one-year NDVI cube for a small region near Boulder, Colorado.  
+CubeDynamics automatically retrieves data, aligns metadata, and constructs a coherent `time × y × x` cube.
 
 ```python
 import cubedynamics as cd
 from cubedynamics import pipe, verbs as v
 
-cube = cd.load_prism_cube(
-    lat=40.0,
-    lon=-105.25,
-    start="2000-01-01",
-    end="2020-12-31",
-    variable="ppt",
-)
-
-# This is small, but the syntax stays identical for 50-year cubes
-pipe(cube) \
-    | v.anomaly(dim="time") \
-    | v.month_filter([6, 7, 8]) \
-    | v.variance(dim="time")
-```
-
-If you request a larger AOI or longer date range, the loader silently returns a VirtualCube that streams tiles through the same verbs.
-
-## Working With Large Datasets (New in 2025)
-
-CubeDynamics can now work with extremely large climate or NDVI datasets — 
-even decades of data or very large spatial areas — without loading everything 
-into memory at once.
-
-It does this using a new system called **VirtualCube**, which streams data in 
-small 'tiles'. You can think of these tiles as puzzle pieces. CubeDynamics 
-processes each piece, keeps track of running statistics, and never holds the 
-whole puzzle in memory.
-
-## Debugging and control
-
-Most users never need to configure streaming. When you do, use these helpers:
-
-```python
 ndvi = cd.ndvi(
     lat=40.0,
     lon=-105.25,
-    start="1970",
-    end="2020",
-    streaming_strategy="virtual",
-    time_tile="5y",
+    start="2020-01-01",
+    end="2020-12-31",
 )
-print(ndvi)           # shows that it is a VirtualCube
-ndvi.debug_tiles()    # prints time + space tiles
-ndvi.materialize()    # forces full load; only for small areas
+ndvi
 ```
 
-Try smaller `time_tile` or spatial bounds if you see slow progress or rate limits.
-
-## Behind the scenes
-
-When a request is too large for a normal in-memory cube, CubeDynamics:
-- Splits the timeline into tiles (for example, five-year windows).
-- Splits the AOI into spatial tiles when needed.
-- Streams each tile through the verbs, tracking running statistics like variance or mean.
-- Returns a normal-looking DataArray/Dataset at the end.
-
-You do not have to change your code when streaming kicks in.
-
-## Next steps
-
-- Browse the [Virtual Cubes](concepts/virtual_cubes.md) page for a full tour of streaming.
-- Read [Streaming Large Data](streaming_large_data.md) for debugging checklists and provider considerations.
-- Grab a semantic loader from [semantic_variables.md](semantic_variables.md) if you want NDVI or temperature without memorizing provider names.
+You now have a fully functional data cube that preserves both **space** and **time**.
 
 ---
 
-This material has been moved to the Legacy Reference page.
+## 3. Compute a climatology and anomaly
+
+Cube-based analysis allows transformations that depend on the full spatiotemporal context.
+
+```python
+ndvi_clim = pipe(ndvi) | v.climatology()
+ndvi_anom = pipe(ndvi, ndvi_clim) | v.anomaly()
+```
+
+`v.climatology()` computes a baseline seasonal cycle.  
+`v.anomaly()` shows deviations from that seasonal expectation.
+
+These are operations that traditionally require many raster manipulations—here they are expressed directly on the cube.
+
+---
+
+## 4. Explore the result in the 3D cube viewer
+
+```python
+pipe(ndvi_anom) | v.plot()
+```
+
+The interactive cube viewer displays:
+
+- **Temporal slices** through the back face,  
+- **Spatial slices** across the sides,  
+- **Dynamic rotation and zoom** for exploring patterns.
+
+This makes it easy to see when and where NDVI departs from typical seasonal behavior.
+
+---
+
+## 5. Make a simple map
+
+Many analyses only need a 2-D spatial snapshot (e.g., a seasonal mean or anomaly).  
+You can visualize these with:
+
+```python
+pipe(ndvi_anom) | v.map()
+```
+
+This produces a lightweight map view with consistent colormaps and metadata.
+
+---
+
+## 6. What next?
+
+Now that you have a working cube and basic transformations, explore:
+
+- **Conceptcepts**
+  - What is a cube?  
+  - Pipe & verb grammar  
+  - VirtualCubes and streaming  
+
+- **How-to Guides**  
+  - NDVI anomalies  
+  - Climate variance  
+  - Correlation cubes  
+
+- **Visualization**  
+  - Cube viewer (`v.plot`)  
+  - Map viewer (`v.map`)  
+
+- **API Reference**  
+
+CubeDynamics provides a unified, cube-native way to work with spatiotemporal environmental data—simple enough for quick exploration, powerful enough for large-scale scientific analysis.

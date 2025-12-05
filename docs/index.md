@@ -212,7 +212,7 @@ This pipes the mean-centered cube into Lexcube for interactive exploration.
 
 CubeDynamics treats every spatiotemporal grid as a **cube** and lets you compose operations with a simple `pipe(cube) | verbs` syntax. Build anomaly pipelines, correlate climate and vegetation, and publish Lexcube-ready visualizations without breaking out of Python.
 
-[Get started](getting_started/install.md){ .md-button .md-button--primary }
+[Get started](quickstart.md){ .md-button .md-button--primary }
 [Browse examples](examples/prism_jja_variance.md){ .md-button }
 [Verbs reference](reference/verbs_transforms.md){ .md-button }
 [Semantic loaders](semantic_variables.md){ .md-button }
@@ -290,7 +290,7 @@ pipe(cube) \
 
 ### Learn more pathways
 
-- Start with the [Installation & setup guide](getting_started/install.md) for environment tips and troubleshooting.
+- Start with the [Installation & setup guide](quickstart.md) for environment tips and troubleshooting.
 - Walk through [What is a cube?](concepts/cubes.md) and [Pipe syntax & verbs](concepts/pipe_and_verbs.md) to lock in the mental model.
 - Visualize cubes interactively with the [Lexcube verb](reference/verbs_viz.md#vshow_cube_lexcube) or head to the [Examples & Recipes](examples/prism_jja_variance.md) section for end-to-end notebooks.
 
