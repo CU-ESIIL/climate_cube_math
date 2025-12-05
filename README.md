@@ -59,6 +59,27 @@ streams.
   your cursor slips outside the canvas mid-gesture.
 - Zoom with a trackpad pinch or mouse scroll.
 
+## Troubleshooting interactivity
+
+- Trust the notebook output (Jupyter: *File → Trust Notebook*) so the inline
+  JavaScript that powers the cube viewer can run.
+- Disable script-blocking browser extensions for the notebook domain while
+  testing; the viewer attaches dynamic pointer/mouse/touch listeners.
+- Try a modern browser (Chrome or Firefox). Safari sometimes throttles
+  PointerEvents in embedded outputs; toggling ``debug=True`` surfaces
+  ``[CubeViewer debug]`` logs in the developer console so you can confirm
+  whether events are firing.
+- If interaction still fails, render ``pipe(ndvi) | v.plot(debug=True)`` and
+  watch the console for ``pointerdown``, ``mousedown``, ``touchstart``, and
+  ``wheel`` messages.
+
+## Developer notes
+
+- The helper ``cubedynamics.plotting.cube_viewer._write_demo_html()`` writes a
+  standalone ``cube_demo.html`` with simple color blocks. Open it directly in a
+  browser to confirm dragging/zooming work even outside Jupyter—handy before and
+  after refactors.
+
 ## Why a grammar of graphics for climate cubes?
 
 Climate cubes are small stacks of maps through time (typically `(time, y, x)` and optional `band`). A grammar keeps the visualization expressive while staying readable:

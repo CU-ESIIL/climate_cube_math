@@ -1,10 +1,24 @@
 from __future__ import annotations
 
+"""Build and emit the interactive cube viewer HTML.
+
+The viewer flow is:
+
+- ``CubePlot.to_html()`` prepares stats/annotations and calls ``cube_from_dataarray``.
+- ``cube_from_dataarray`` renders faces/interior planes to base64 PNGs and forwards
+  theme metadata plus cube geometry into ``_render_cube_html``.
+- ``_render_cube_html`` assembles the final HTML + inline JS that drives the
+  browser-side interactions (rotation, zoom, annotations). ``CubePlot._repr_html_``
+  simply delegates to ``to_html()`` so notebook rendering and file export share the
+  same template.
+"""
+
 import base64
 import io
 import logging
 import uuid
 import warnings
+from pathlib import Path
 from typing import Any, Dict, Optional, TYPE_CHECKING
 
 import numpy as np
@@ -180,6 +194,8 @@ def _render_cube_html(
     axis_meta: Dict[str, Dict[str, str]] | None,
     color_limits: tuple[float, float],
     interior_meta: Dict[str, int],
+    fig_id: str | None = None,
+    debug: bool = False,
 ) -> str:
     interior_html_parts = []
     if interior_planes:
@@ -197,16 +213,16 @@ def _render_cube_html(
     time_meta = axis_meta.get("time", {})
     x_meta = axis_meta.get("x", {})
     y_meta = axis_meta.get("y", {})
-    fig_id = uuid.uuid4().hex
+    fig_token = str(fig_id) if fig_id is not None else uuid.uuid4().hex
     js_warning_text = (
         "<strong>Interactive controls need JavaScript.</strong> Trust this "
         "notebook/output and temporarily disable script blockers to rotate "
         "and zoom the cube."
     )
-    figure_id = f"cube-figure-{fig_id}"
+    figure_id = f"cube-figure-{fig_token}"
 
     cube_faces_html = f"""
-        <div class=\"cd-cube\" id=\"cube-{fig_id}\">
+        <div class=\"cd-cube\" id=\"cube-{fig_token}\">
           <div class=\"cd-face cd-front\" style=\"background-image: url('{front}');\"></div>
           <div class=\"cd-face cd-back\" style=\"background-image: url('{back}');\"></div>
           <div class=\"cd-face cd-left\" style=\"background-image: url('{left}');\"></div>
@@ -483,14 +499,14 @@ def _render_cube_html(
   </style>
 </head>
 <body>\n\
-  <div class=\"cube-figure\" id=\"{figure_id}\" data-cb-min=\"{color_limits[0]:.2f}\" data-cb-max=\"{color_limits[1]:.2f}\" data-rot-x=\"{rot_x:.1f}\" data-rot-y=\"{rot_y:.1f}\" data-zoom=\"{zoom}\">{title_html}
+  <div class=\"cube-figure\" id=\"{figure_id}\" data-cb-min=\"{color_limits[0]:.2f}\" data-cb-max=\"{color_limits[1]:.2f}\" data-rot-x=\"{rot_x:.1f}\" data-rot-y=\"{rot_y:.1f}\" data-zoom=\"{zoom}\" data-fig-id=\"{fig_token}\" data-debug=\"{1 if debug else 0}\">{title_html}
     <div class=\"cube-main\">
       <div class=\"cube-inner\" id=\"cube-inner\">
         <div class=\"cube-container\">
-          <div id=\"cube-wrapper-{fig_id}\" class=\"cube-wrapper\">
-              <div class=\"cube-drag-surface\" id=\"cube-drag-{fig_id}\"></div>
-            <canvas class=\"cube-canvas\" id=\"cube-canvas-{fig_id}\"></canvas>
-            <div class=\"cube-rotation\" id=\"cube-rotation-{fig_id}\" style=\"transform: {initial_transform};\">
+          <div id=\"cube-wrapper-{fig_token}\" class=\"cube-wrapper\">
+              <div class=\"cube-drag-surface\" id=\"cube-drag-{fig_token}\"></div>
+            <canvas class=\"cube-canvas\" id=\"cube-canvas-{fig_token}\"></canvas>
+            <div class=\"cube-rotation\" id=\"cube-rotation-{fig_token}\" style=\"transform: {initial_transform};\">
               {cube_faces_html}
               {interior_html}
             </div>
@@ -508,7 +524,7 @@ def _render_cube_html(
         </div>
       </div>
     </div>
-    <div class=\"cube-js-warning hidden\" id=\"cube-js-warning-{fig_id}\" aria-live=\"polite\">
+    <div class=\"cube-js-warning hidden\" id=\"cube-js-warning-{fig_token}\" aria-live=\"polite\">
       <div class=\"dot\"></div>
       <div class=\"cube-warning-text\">{js_warning_text}</div>
     </div>
@@ -525,22 +541,32 @@ def _render_cube_html(
     console.log('[CubeViewer] script starting');
     try {{
     (function() {{
-        const root = document.getElementById("{figure_id}")
+        const figureId = "{figure_id}";
+        let root = document.getElementById(figureId)
           || (typeof document !== 'undefined' ? document.currentScript?.previousElementSibling : null);
+        if (!root && typeof document !== 'undefined' && document.currentScript) {{
+            let el = document.currentScript.previousElementSibling;
+            while (el && el.tagName !== 'FIGURE' && !(el.id || '').startsWith('cube-figure-')) {{
+                el = el.previousElementSibling;
+            }}
+            root = el || null;
+        }}
         if (!root) {{
-            console.warn('[CubeViewer] could not find viewer root');
+            console.warn('[CubeViewer] could not find viewer root', figureId);
             return;
         }}
 
-        const canvas = root.querySelector("#cube-canvas-{fig_id}");
-        const cubeRotation = root.querySelector("#cube-rotation-{fig_id}");
-        const dragSurface = root.querySelector("#cube-drag-{fig_id}")
-          || root.querySelector("#cube-wrapper-{fig_id}")
+        const canvas = root.querySelector("#cube-canvas-{fig_token}");
+        const cubeRotation = root.querySelector("#cube-rotation-{fig_token}");
+        const dragSurface = root.querySelector("#cube-drag-{fig_token}")
+          || root.querySelector("#cube-wrapper-{fig_token}")
           || canvas;
-        const jsWarning = root.querySelector("#cube-js-warning-{fig_id}");
+        const jsWarning = root.querySelector("#cube-js-warning-{fig_token}");
         const jsWarningText = jsWarning ? jsWarning.querySelector(".cube-warning-text") : null;
 
         const data = root.dataset || {{}};
+        const DEBUG = data.debug === "1" || data.debug === "true" || data.DEBUG === "1" || data.DEBUG === "true";
+        function debugLog(...args) {{ if (DEBUG) console.log('[CubeViewer debug]', ...args); }}
         let rotationX = (parseFloat(data.rotX) || 0) * Math.PI / 180;
         let rotationY = (parseFloat(data.rotY) || 0) * Math.PI / 180;
         let zoom = parseFloat(data.zoom) || 1;
@@ -559,6 +585,8 @@ def _render_cube_html(
 
         const gl = canvas.getContext("webgl");
 
+        debugLog('init viewer', {{ supportsPointer: !!window.PointerEvent, dragSurface, canvas, figureId }});
+
         function applyCubeRotation() {{
             if (!cubeRotation) return;
             cubeRotation.style.transform = 'rotateX(' + rotationX + 'rad) rotateY(' + rotationY + 'rad) scale(' + zoom + ')';
@@ -567,23 +595,27 @@ def _render_cube_html(
         applyCubeRotation();
 
         let dragging = false;
-        let cleanupDragListeners = null;
         let lastX = 0, lastY = 0;
         let activePointerId = null;
         let activeTouchId = null;
 
-        function clearDragListeners() {{
-            if (cleanupDragListeners) {{
-                cleanupDragListeners();
-                cleanupDragListeners = null;
+        function startDragging(clientX, clientY, source) {{
+            dragging = true;
+            lastX = clientX;
+            lastY = clientY;
+            if (dragSurface) {{
+                dragSurface.style.cursor = "grabbing";
             }}
+            debugLog('start drag', source, clientX, clientY);
         }}
 
-        function stopDragging(e) {{
-            clearDragListeners();
+        function stopDraggingUniversal(e) {{
             if (!dragging) return;
             const pointerId = (e && e.pointerId !== undefined) ? e.pointerId : activePointerId;
+            debugLog('stop drag', e ? e.type : 'unknown');
             dragging = false;
+            activePointerId = null;
+            activeTouchId = null;
             if (
                 dragSurface &&
                 e &&
@@ -610,6 +642,7 @@ def _render_cube_html(
             rotationX += dy * 0.01;
             lastX = clientX;
             lastY = clientY;
+            debugLog('drag move', dx, dy);
             applyCubeRotation();
         }}
 
@@ -617,18 +650,15 @@ def _render_cube_html(
             const supportsPointer = !!window.PointerEvent;
             dragSurface.style.cursor = "grab";
             dragSurface.style.touchAction = "none";
-
-            onPointerMove = e => {{
-                handleDragMove(e.clientX, e.clientY);
-            }};
+            dragSurface.style.pointerEvents = "auto";
 
             if (supportsPointer) {{
                 dragSurface.addEventListener("pointerdown", e => {{
+                    debugLog('pointerdown', e.pointerType, e.clientX, e.clientY);
                     e.preventDefault();
                     e.stopPropagation();
-                    dragging = true;
-                    lastX = e.clientX;
-                    lastY = e.clientY;
+                    activePointerId = e.pointerId;
+                    startDragging(e.clientX, e.clientY, e.pointerType || 'pointer');
                     if (typeof dragSurface.setPointerCapture === "function" && e.pointerId !== undefined) {{
                         try {{
                             dragSurface.setPointerCapture(e.pointerId);
@@ -636,76 +666,62 @@ def _render_cube_html(
                             console.warn('[CubeViewer] setPointerCapture failed', err);
                         }}
                     }}
-                    dragSurface.style.cursor = "grabbing";
-                    dragSurface.addEventListener("pointermove", onPointerMove);
                 }});
 
-                dragSurface.addEventListener("pointerup", e => {{
-                    if (onPointerMove) {{
-                        dragSurface.removeEventListener("pointermove", onPointerMove);
-                    }}
-                    stopDragging(e);
+                dragSurface.addEventListener("pointermove", e => {{
+                    if (!dragging || (activePointerId !== null && e.pointerId !== activePointerId)) return;
+                    handleDragMove(e.clientX, e.clientY);
                 }});
 
-                dragSurface.addEventListener("pointercancel", e => {{
-                    if (onPointerMove) {{
-                        dragSurface.removeEventListener("pointermove", onPointerMove);
-                    }}
-                    stopDragging(e);
-                }});
-
-                window.addEventListener("pointerup", e => {{
-                    if (dragSurface && onPointerMove) {{
-                        dragSurface.removeEventListener("pointermove", onPointerMove);
-                    }}
-                    stopDragging(e);
-                }});
-
-                window.addEventListener("pointercancel", e => {{
-                    if (dragSurface && onPointerMove) {{
-                        dragSurface.removeEventListener("pointermove", onPointerMove);
-                    }}
-                    stopDragging(e);
-                }});
-            }} else {{
-                const onMouseMove = e => handleDragMove(e.clientX, e.clientY);
-                const onMouseUp = e => {{
-                    window.removeEventListener("mousemove", onMouseMove);
-                    stopDragging(e);
-                }};
-
-                dragSurface.addEventListener("mousedown", e => {{
-                    e.preventDefault();
-                    dragging = true;
-                    lastX = e.clientX;
-                    lastY = e.clientY;
-                    dragSurface.style.cursor = "grabbing";
-                    window.addEventListener("mousemove", onMouseMove);
-                    window.addEventListener("mouseup", onMouseUp, {{ once: true }});
-                }});
-
-                dragSurface.addEventListener("touchstart", e => {{
-                    if (!e.touches || e.touches.length === 0) return;
-                    e.preventDefault();
-                    const touch = e.touches[0];
-                    dragging = true;
-                    lastX = touch.clientX;
-                    lastY = touch.clientY;
-                    dragSurface.style.cursor = "grabbing";
-                }}, {{ passive: false }});
-
-                dragSurface.addEventListener("touchmove", e => {{
-                    if (!dragging || !e.touches || e.touches.length === 0) return;
-                    const touch = e.touches[0];
-                    handleDragMove(touch.clientX, touch.clientY);
-                }}, {{ passive: false }});
-
-                dragSurface.addEventListener("touchend", e => {{
-                    stopDragging(e.changedTouches ? e.changedTouches[0] : e);
-                }});
+                const pointerStop = e => stopDraggingUniversal(e);
+                dragSurface.addEventListener("pointerup", pointerStop);
+                dragSurface.addEventListener("pointercancel", pointerStop);
+                window.addEventListener("pointerup", pointerStop);
+                window.addEventListener("pointercancel", pointerStop);
             }}
 
+            dragSurface.addEventListener("mousedown", e => {{
+                if (supportsPointer && activePointerId !== null) return;
+                debugLog('mousedown', e.clientX, e.clientY);
+                e.preventDefault();
+                startDragging(e.clientX, e.clientY, 'mouse');
+                const onMouseMove = ev => handleDragMove(ev.clientX, ev.clientY);
+                const onMouseUp = ev => {{
+                    window.removeEventListener("mousemove", onMouseMove);
+                    window.removeEventListener("mouseup", onMouseUp);
+                    stopDraggingUniversal(ev);
+                }};
+                window.addEventListener("mousemove", onMouseMove);
+                window.addEventListener("mouseup", onMouseUp);
+            }});
+
+            dragSurface.addEventListener("touchstart", e => {{
+                if (supportsPointer && activePointerId !== null) return;
+                if (!e.touches || e.touches.length === 0) return;
+                debugLog('touchstart', e.touches[0].identifier, e.touches[0].clientX, e.touches[0].clientY);
+                e.preventDefault();
+                const touch = e.touches[0];
+                activeTouchId = touch.identifier;
+                startDragging(touch.clientX, touch.clientY, 'touch');
+                const onTouchMove = ev => {{
+                    if (!dragging) return;
+                    const t = Array.from(ev.touches || []).find(x => x.identifier === activeTouchId) || ev.touches[0];
+                    if (!t) return;
+                    handleDragMove(t.clientX, t.clientY);
+                }};
+                const onTouchEnd = ev => {{
+                    window.removeEventListener("touchmove", onTouchMove);
+                    window.removeEventListener("touchend", onTouchEnd);
+                    window.removeEventListener("touchcancel", onTouchEnd);
+                    stopDraggingUniversal(ev.changedTouches ? ev.changedTouches[0] : ev);
+                }};
+                window.addEventListener("touchmove", onTouchMove, {{ passive: false }});
+                window.addEventListener("touchend", onTouchEnd);
+                window.addEventListener("touchcancel", onTouchEnd);
+            }}, {{ passive: false }});
+
             dragSurface.addEventListener("wheel", e => {{
+                debugLog('wheel', e.deltaY);
                 e.preventDefault();
                 const delta = e.deltaY;
                 const zoomFactor = Math.exp(delta * 0.0015);
@@ -851,7 +867,7 @@ def _render_cube_html(
     }} catch (err) {{
       console.error('[CubeViewer] top-level error', err);
       const root = document.getElementById("{figure_id}");
-      const jsWarning = root ? root.querySelector("#cube-js-warning-{fig_id}") : null;
+      const jsWarning = root ? root.querySelector("#cube-js-warning-{fig_token}") : null;
       if (jsWarning) {{
         jsWarning.classList.remove("hidden");
       }}
@@ -904,6 +920,8 @@ def cube_from_dataarray(
     vase_mask: xr.DataArray | None = None,
     vase_outline: Any | None = None,
     axis_meta: Dict[str, Dict[str, str]] | None = None,
+    fig_id: str | None = None,
+    debug: bool = False,
 ):
     volume_density = volume_density or {"time": 6, "x": 2, "y": 2}
     volume_downsample = volume_downsample or {"time": 4, "space": 4}
@@ -1150,6 +1168,8 @@ def cube_from_dataarray(
             axis_meta=axis_meta,
             color_limits=(vmin, vmax),
             interior_meta=interior_meta,
+            fig_id=fig_id,
+            debug=debug,
         )
         with open(out_html, "w", encoding="utf-8") as f:
             f.write(full_html)
@@ -1220,6 +1240,8 @@ def cube_from_dataarray(
         axis_meta=axis_meta,
         color_limits=(vmin, vmax),
         interior_meta=interior_meta,
+        fig_id=fig_id,
+        debug=debug,
     )
 
     with open(out_html, "w", encoding="utf-8") as f:
@@ -1228,6 +1250,75 @@ def cube_from_dataarray(
     if return_html:
         return full_html
     return HTML(full_html)
+
+
+def _write_demo_html(path: str | Path = "cube_demo.html", *, debug: bool = False) -> Path:
+    """Write a minimal standalone cube viewer for manual interactivity checks.
+
+    The demo uses solid-color PNG faces (no xarray dependency) so developers can
+    open ``cube_demo.html`` directly in Chrome/Firefox/Safari to validate drag
+    and zoom behavior without running a notebook. Enable verbose console logs by
+    passing ``debug=True``.
+    """
+
+    def _solid_png(color: tuple[int, int, int]) -> str:
+        arr = np.zeros((64, 64, 4), dtype="uint8")
+        arr[..., :3] = color
+        arr[..., 3] = 255
+        return f"data:image/png;base64,{_rgba_to_png_base64(arr)}"
+
+    faces = {
+        "front": _solid_png((67, 160, 71)),
+        "back": _solid_png((13, 71, 161)),
+        "left": _solid_png((194, 24, 91)),
+        "right": _solid_png((255, 143, 0)),
+        "top": _solid_png((0, 121, 107)),
+        "bottom": _solid_png((233, 30, 99)),
+    }
+
+    axis_meta = {
+        "time": {"name": "Time", "min": "t0", "max": "t3"},
+        "x": {"name": "X", "min": "0", "max": "10"},
+        "y": {"name": "Y", "min": "0", "max": "10"},
+    }
+
+    theme = {
+        "--cube-bg-color": "#0b1221",
+        "--cube-panel-color": "#0b1221",
+        "--cube-shadow-strength": "0.25",
+        "--cube-title-color": "#e5e7eb",
+        "--cube-axis-color": "#e5e7eb",
+        "--cube-legend-color": "#e5e7eb",
+        "--cube-title-font-size": "18px",
+        "--cube-axis-font-size": "12px",
+        "--cube-legend-font-size": "12px",
+        "--cube-font-family": "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+    }
+
+    html = _render_cube_html(
+        front=faces["front"],
+        back=faces["back"],
+        left=faces["left"],
+        right=faces["right"],
+        top=faces["top"],
+        bottom=faces["bottom"],
+        interior_planes=None,
+        theme=theme,
+        coord=None,
+        legend_html="",
+        title_html="<div class=\"cube-title\">Cube viewer demo</div>",
+        size_px=280,
+        axis_meta=axis_meta,
+        color_limits=(-1.0, 1.0),
+        interior_meta={"nt": 4, "ny": 4, "nx": 4},
+        fig_id="demo",
+        debug=debug,
+    )
+
+    dest = Path(path)
+    dest.write_text(html, encoding="utf-8")
+    logger.info("Wrote cube viewer demo HTML to %s", dest)
+    return dest
 
 
 def _guess_axis_name(da: xr.DataArray, dim: str) -> str:
@@ -1272,6 +1363,7 @@ def _axis_range_from_ticks(ticks):
 
 __all__ = [
     "cube_from_dataarray",
+    "_write_demo_html",
     "_guess_axis_name",
     "_infer_axis_ticks",
     "_axis_range_from_ticks",
