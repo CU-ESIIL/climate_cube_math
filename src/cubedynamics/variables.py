@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+from datetime import datetime, date
 from typing import Any, Mapping, Optional, Sequence, Literal
 import warnings
 
 import pandas as pd
 import xarray as xr
 
+import cubedynamics as cd
 from cubedynamics import pipe, verbs as v
 from cubedynamics.data.gridmet import load_gridmet_cube
 from cubedynamics.data.prism import load_prism_cube
@@ -324,6 +326,103 @@ def temperature_anomaly(
     return temp_cube - baseline_mean
 
 
+def _year_chunks(start: str, end: str, years_per_chunk: int = 1):
+    """
+    Yield (start_str, end_str) for consecutive chunks of up to years_per_chunk.
+    Both start and end are 'YYYY-MM-DD' strings.
+
+    The last chunk is clamped so it never extends beyond the requested `end`.
+    """
+    start_dt = datetime.fromisoformat(start).date()
+    end_dt = datetime.fromisoformat(end).date()
+
+    # Start at the beginning of the start year, but clamp to requested start.
+    current = date(start_dt.year, 1, 1)
+    if start_dt > current:
+        current = start_dt
+
+    while current <= end_dt:
+        chunk_end_year = current.year + years_per_chunk - 1
+        chunk_end = date(chunk_end_year, 12, 31)
+        if chunk_end > end_dt:
+            chunk_end = end_dt
+        chunk_start = max(current, start_dt)
+        yield chunk_start.isoformat(), chunk_end.isoformat()
+        # Next chunk starts at Jan 1 of the year after this chunk_end
+        current = date(chunk_end.year + 1, 1, 1)
+
+
+def ndvi_chunked(
+    lat: float,
+    lon: float,
+    start: str,
+    end: str,
+    years_per_chunk: int = 1,
+    drop_bad: bool = True,
+    **ndvi_kwargs,
+) -> xr.DataArray:
+    """
+    Load a Sentinel-2 NDVI cube in time chunks and concatenate along 'time'.
+
+    This wraps the existing `cd.ndvi` function and is designed for long
+    date ranges that may cause STAC API timeouts if requested in a single
+    call. The time interval [start, end] is split into chunks of up to
+    `years_per_chunk` calendar years, `cd.ndvi` is called for each chunk,
+    and the results are concatenated along the `time` dimension.
+
+    Parameters
+    ----------
+    lat, lon : float
+        Center of the Sentinel-2 query (same semantics as cd.ndvi).
+    start, end : str
+        Date strings 'YYYY-MM-DD' specifying the full period of interest.
+    years_per_chunk : int, default 1
+        Maximum number of years per STAC query. Smaller values are safer
+        and more robust against remote API timeouts.
+    drop_bad : bool, default True
+        If True, applies `v.drop_bad_assets()` to each chunk to remove any
+        time slices whose assets fail to load (e.g., 403 errors).
+    **ndvi_kwargs :
+        Additional keyword arguments forwarded to `cd.ndvi` (e.g., edge_size,
+        max_cloud, etc.).
+
+    Returns
+    -------
+    xr.DataArray
+        NDVI DataArray concatenated across all chunks, sorted by time.
+
+    Raises
+    ------
+    RuntimeError
+        If no chunks could be loaded (e.g. due to bad dates).
+    """
+    all_cubes: list[xr.DataArray] = []
+
+    for s_chunk, e_chunk in _year_chunks(start, end, years_per_chunk=years_per_chunk):
+        print(f"Loading NDVI chunk: {s_chunk} \u2192 {e_chunk}")
+        cube = cd.ndvi(
+            lat=lat,
+            lon=lon,
+            start=s_chunk,
+            end=e_chunk,
+            **ndvi_kwargs,
+        )
+        if drop_bad:
+            # Use the existing pipe/verbs API; unwrap back to DataArray.
+            cube = (pipe(cube) | v.drop_bad_assets()).unwrap()
+        all_cubes.append(cube)
+
+    if not all_cubes:
+        raise RuntimeError("ndvi_chunked: no chunks loaded – check dates and query area.")
+
+    if len(all_cubes) == 1:
+        ndvi = all_cubes[0]
+    else:
+        ndvi = xr.concat(all_cubes, dim="time").sortby("time")
+
+    return ndvi
+
+
 def ndvi(
     *,
     lat: Optional[float] = None,
@@ -384,5 +483,6 @@ __all__ = [
     "temperature_min",
     "temperature_max",
     "temperature_anomaly",
+    "ndvi_chunked",
     "ndvi",
 ]

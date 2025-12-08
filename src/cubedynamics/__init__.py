@@ -37,6 +37,7 @@ from .variables import (
     temperature_anomaly,
     temperature_max,
     temperature_min,
+    ndvi_chunked,
     ndvi,
 )
 from .sentinel import (
@@ -104,6 +105,7 @@ __all__ = [
     "temperature_min",
     "temperature_max",
     "temperature_anomaly",
+    "ndvi_chunked",
     "ndvi",
 ]
 
