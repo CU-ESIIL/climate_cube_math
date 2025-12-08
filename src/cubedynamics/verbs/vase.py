@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import cubedynamics as cd
 import xarray as xr
 
 from ..vase import VaseDefinition, build_vase_mask
@@ -106,5 +107,59 @@ def vase(vase=None, outline: bool = True, **plot_kwargs):
 
         # Delegate to standard plot verb
         return plot_verb(**plot_kwargs)(masked)
+
+    return _inner
+
+
+def vase_demo(
+    n_sections: int = 4,
+    shrink: float = 0.1,
+    interp: str = "nearest",
+    **plot_kwargs,
+):
+    """Convenience verb: build a demo stacked-polygon vase and plot it.
+
+    Usage
+    -----
+    pipe(cube) | v.vase_demo()
+
+    This:
+
+    1. Calls ``cd.demo.stacked_polygon_vase(cube, n_sections=n_sections, shrink=shrink, interp=interp)``
+       to construct a VaseDefinition over the cube's extent and time axis.
+    2. Passes that VaseDefinition into ``v.vase(vase=vase_def, **plot_kwargs)`` to
+       apply the mask and render the vase-focused 3D cube plot.
+
+    Parameters
+    ----------
+    n_sections : int, default 4
+        Number of time sections for the stacked polygons.
+    shrink : float, default 0.1
+        Fractional shrink factor applied per section (0 = full cube, larger = more taper).
+    interp : {"nearest", "linear"}, default "nearest"
+        Interpolation mode used for the VaseDefinition.
+    **plot_kwargs :
+        Extra keyword arguments forwarded to the underlying plot verb,
+        e.g. ``elev``, ``azim``, ``alpha``, etc.
+
+    Returns
+    -------
+    Callable
+        A function suitable for use in the pipe:
+
+            pipe(cube) | v.vase_demo(...)
+    """
+
+    def _inner(da):
+        # Step 1: build a demo VaseDefinition for this cube
+        vase_def = cd.demo.stacked_polygon_vase(
+            da,
+            n_sections=n_sections,
+            shrink=shrink,
+            interp=interp,
+        )
+
+        # Step 2: delegate to the existing vase() verb, passing the demo vase
+        return vase(vase=vase_def, **plot_kwargs)(da)
 
     return _inner
