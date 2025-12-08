@@ -98,6 +98,29 @@ axis) to create a time-varying polygon tube. Later, you can replace
 ``cd.demo.stacked_polygon_vase(...)`` with a data-driven vase constructed from
 your own polygons or AOI definitions.
 
+## Quick demo with `v.vase_demo()`
+
+For a one-liner demo, you can let CubeDynamics build a stacked-polygon vase
+for you and plot it in one go:
+
+```python
+import cubedynamics as cd
+from cubedynamics import pipe, verbs as v
+
+ndvi = cd.ndvi(
+    lat=40.0,
+    lon=-105.25,
+    start="2023-01-01",
+    end="2024-12-31",
+)
+
+pipe(ndvi) | v.vase_demo(n_sections=4, shrink=0.1)
+```
+
+This uses ``cd.demo.stacked_polygon_vase(...)`` under the hood to construct a
+simple geometric vase volume, then passes it into ``v.vase()`` to render the
+vase-focused 3D cube plot.
+
 ## Streaming-first behavior
 
 `v.vase_extract` and `CubePlot.stat_vase` iterate over time slices using coordinates only, so they work with dask-backed cubes and `VirtualCube` streams without ever calling `.values` on the full array. The streaming renderer reuses those masks to tint faces slice by slice.

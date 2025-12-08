@@ -126,3 +126,23 @@ def test_vase_verb_requires_vase():
 
     with pytest.raises(ValueError):
         pipe(cube) | v.vase()
+
+
+def _tiny_cube():
+    time = np.arange("2000-01", "2000-05", dtype="datetime64[M]")
+    y = np.linspace(0, 3, 4)
+    x = np.linspace(0, 3, 4)
+    data = np.random.rand(len(time), len(y), len(x)).astype("float32")
+    return xr.DataArray(
+        data,
+        dims=("time", "y", "x"),
+        coords={"time": time, "y": y, "x": x},
+        name="demo",
+    )
+
+
+def test_vase_demo_smoke():
+    cube = _tiny_cube()
+
+    viewer = pipe(cube) | v.vase_demo(n_sections=3, shrink=0.2)
+    assert viewer is not None
