@@ -11,6 +11,7 @@ requests responsive in notebooks.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 import logging
@@ -26,6 +27,7 @@ import pandas as pd
 from cubedynamics.plotting.cube_viewer import cube_from_dataarray
 from cubedynamics.vase import VaseDefinition
 from cubedynamics.utils import _infer_time_y_x_dims
+from cubedynamics.plotting.viewer import show_cube_viewer
 
 
 logger = logging.getLogger(__name__)
@@ -874,7 +876,16 @@ class CubePlot(metaclass=_CubePlotMeta):
 
     def _repr_html_(self) -> str:  # pragma: no cover - exercised in notebooks
         logger.info("CubePlot._repr_html_ called for %s", getattr(self.data, "name", None))
-        return self.to_html()
+        html_out = self.to_html()
+        prefix = Path(self.out_html).stem or "cube_viewer"
+        iframe = show_cube_viewer(
+            html_out,
+            width=max(850, self.size_px + 300),
+            height=max(850, self.size_px + 300),
+            prefix=prefix,
+        )
+        self._last_iframe = iframe  # used in tests/notebooks to locate the file
+        return iframe._repr_html_()
 
 
 __all__ = [
