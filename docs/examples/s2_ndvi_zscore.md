@@ -24,6 +24,32 @@ ndvi_z = pipe(ndvi) | v.zscore(dim="time")
 
 Need raw reflectance instead? Call `cd.load_sentinel2_ndvi_cube(...)` (shown above) to get NDVI in the physical range `[-1, 1]` and optionally request the underlying B04/B08 stack with `return_raw=True`.
 
+### Chunked NDVI loading for long periods
+
+For long time spans (multiple years), the Planetary Computer STAC API may
+time out if we request everything in a single query. The helper
+`cd.ndvi_chunked` splits the requested date range into smaller chunks,
+calls `cd.ndvi` for each, and concatenates them along the time dimension:
+
+```python
+import cubedynamics as cd
+from cubedynamics import pipe, verbs as v
+
+ndvi = cd.ndvi_chunked(
+    lat=40.0,
+    lon=-105.25,
+    start="2018-01-01",
+    end="2024-12-31",
+    years_per_chunk=1,  # 1 year per STAC query
+)
+
+pipe(ndvi) | v.plot()
+```
+
+By default, `ndvi_chunked` also applies `v.drop_bad_assets()` to each
+chunk to skip individual Sentinel-2 assets that fail to load (e.g., due
+to intermittent 403 errors).
+
 Prefer to stream via [`cubo`](https://github.com/carbonplan/cubo)? Use the original recipe snippet:
 
 ```python
