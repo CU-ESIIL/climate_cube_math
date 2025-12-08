@@ -21,6 +21,7 @@ nav:
   - Visualization:
       - Cube viewer (v.plot): viz/cube_viewer.md
       - Maps (v.map): viz/maps.md
+      - Suitability tubes: tubes.md
 
   - API Reference: api/index.md
 
