@@ -10,6 +10,7 @@ Core goals
 from .version import __version__
 from .piping import Pipe, pipe
 from . import verbs
+from . import tubes
 from .demo_vase import demo
 import xarray as xr
 
