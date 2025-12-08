@@ -5,6 +5,7 @@ import io
 import logging
 import uuid
 import warnings
+from pathlib import Path
 from typing import Any, Dict, Optional, TYPE_CHECKING
 
 import numpy as np
@@ -12,10 +13,16 @@ import pandas as pd
 import xarray as xr
 from matplotlib import colormaps, colors as mcolors
 from PIL import Image
-from IPython.display import HTML
 
 from cubedynamics.utils import _infer_time_y_x_dims
 from cubedynamics.plotting.progress import _CubeProgress
+from cubedynamics.plotting.viewer import show_cube_viewer
+
+# Cube viewer pipeline:
+# - :func:`cube_from_dataarray` prepares PNG faces and metadata.
+# - :func:`_render_cube_html` owns the HTML/JS template for the 3D viewer.
+# - :class:`cubedynamics.plotting.cube_plot.CubePlot` uses :func:`show_cube_viewer`
+#   to stream the viewer into notebooks via an iframe to avoid script sanitization.
 
 if TYPE_CHECKING:  # pragma: no cover - typing only
     from cubedynamics.plotting.cube_plot import CoordCube, CubeAnnotation
@@ -112,9 +119,11 @@ def _array_to_png_base64(
     return _rgba_to_png_base64(rgba)
 
 
-def _colorbar_labels(breaks, labels) -> str:
+def _colorbar_labels(breaks, labels, *, viewer_id: str) -> str:
     if not breaks:
-        return "<span id=\"cb-min\"></span><span id=\"cb-max\"></span>"
+        return (
+            f"<span id=\"cb-min-{viewer_id}\"></span><span id=\"cb-max-{viewer_id}\"></span>"
+        )
     spans = []
     for idx, val in enumerate(breaks):
         label = labels[idx] if labels and idx < len(labels) else f"{val:.2f}"
@@ -128,10 +137,11 @@ def _build_legend_html(
     colorbar_b64: str | None,
     fill_breaks: list[float] | None,
     fill_labels: list[str] | None,
+    viewer_id: str,
 ) -> str:
     if not legend_title or not colorbar_b64:
         return ""
-    tick_block = _colorbar_labels(fill_breaks, fill_labels)
+    tick_block = _colorbar_labels(fill_breaks, fill_labels, viewer_id=viewer_id)
     return (
         "<div class=\"cube-legend-panel\">"
         "  <div class=\"cube-legend-card\">"
@@ -180,12 +190,12 @@ def _render_cube_html(
     axis_meta: Dict[str, Dict[str, str]] | None,
     color_limits: tuple[float, float],
     interior_meta: Dict[str, int],
+    viewer_id: str,
 ) -> str:
     # NOTE: This function owns the inline HTML/JS template used both for
-    # notebook embedding (via IPython.display.HTML) and standalone file export.
-    # Keeping the template self contained ensures that v.plot() renders the
-    # exact same viewer in both contexts and avoids iframe sandboxing issues
-    # that would block scripts or pointer events.
+    # notebook embedding (written to disk and loaded via iframe) and standalone
+    # file export. Keeping the template self contained ensures that v.plot()
+    # renders the exact same viewer in both contexts.
     interior_html_parts = []
     if interior_planes:
         for axis, idx, b64, meta in interior_planes:
@@ -202,11 +212,10 @@ def _render_cube_html(
     time_meta = axis_meta.get("time", {})
     x_meta = axis_meta.get("x", {})
     y_meta = axis_meta.get("y", {})
-    fig_id = uuid.uuid4().hex
-    figure_id = f"cube-figure-{fig_id}"
+    figure_id = f"cube-figure-{viewer_id}"
 
     cube_faces_html = f"""
-        <div class=\"cd-cube\" id=\"cube-{fig_id}\">
+        <div class=\"cd-cube\" id=\"cube-{viewer_id}\">
           <div class=\"cd-face cd-front\" style=\"background-image: url('{front}');\"></div>
           <div class=\"cd-face cd-back\" style=\"background-image: url('{back}');\"></div>
           <div class=\"cd-face cd-left\" style=\"background-image: url('{left}');\"></div>
@@ -486,12 +495,12 @@ def _render_cube_html(
 <body>\n\
   <div class=\"cube-figure\" id=\"{figure_id}\" data-cb-min=\"{color_limits[0]:.2f}\" data-cb-max=\"{color_limits[1]:.2f}\" data-rot-x=\"{rot_x:.1f}\" data-rot-y=\"{rot_y:.1f}\" data-zoom=\"{zoom}\">{title_html}
     <div class=\"cube-main\">
-      <div class=\"cube-inner\" id=\"cube-inner\">
+      <div class=\"cube-inner\">
         <div class=\"cube-container\">
-          <div id=\"cube-wrapper-{fig_id}\" class=\"cube-wrapper\">
-              <div class=\"cube-drag-surface\" id=\"cube-drag-{fig_id}\"></div>
-            <canvas class=\"cube-canvas\" id=\"cube-canvas-{fig_id}\"></canvas>
-            <div class=\"cube-rotation\" id=\"cube-rotation-{fig_id}\" style=\"transform: {initial_transform};\">
+          <div id=\"cube-wrapper-{viewer_id}\" class=\"cube-wrapper\">
+              <div class=\"cube-drag-surface\" id=\"cube-drag-{viewer_id}\"></div>
+            <canvas class=\"cube-canvas\" id=\"cube-canvas-{viewer_id}\"></canvas>
+            <div class=\"cube-rotation\" id=\"cube-rotation-{viewer_id}\" style=\"transform: {initial_transform};\">
               {cube_faces_html}
               {interior_html}
             </div>
@@ -509,7 +518,7 @@ def _render_cube_html(
         </div>
       </div>
     </div>
-    <div class=\"cube-js-warning hidden\" id=\"cube-js-warning-{fig_id}\" aria-live=\"polite\">
+    <div class=\"cube-js-warning hidden\" id=\"cube-js-warning-{viewer_id}\" aria-live=\"polite\">
       <div class=\"dot\"></div>
       <div class=\"cube-warning-text\"><strong>Interactive controls need JavaScript.</strong> Trust this notebook/output and temporarily disable script blockers to rotate and zoom the cube.</div>
     </div>
@@ -523,274 +532,135 @@ def _render_cube_html(
   </div>
 
   <script>
-    console.log('[CubeViewer] script starting');
-    try {{
     (function() {{
-        const root = document.getElementById("{figure_id}")
-          || (typeof document !== 'undefined' ? document.currentScript?.previousElementSibling : null);
-        if (!root) {{
-            console.warn('[CubeViewer] could not find viewer root');
-            return;
+      const viewerId = "{viewer_id}";
+      const root = document.getElementById("cube-figure-" + viewerId);
+      if (!root) {{
+        console.warn("[CubeViewer] Root element not found for viewerId", viewerId);
+        return;
+      }}
+
+      const canvas = document.getElementById("cube-canvas-" + viewerId);
+      const cubeRotation = document.getElementById("cube-rotation-" + viewerId);
+      const dragSurface = document.getElementById("cube-drag-" + viewerId)
+        || document.getElementById("cube-wrapper-" + viewerId);
+      const jsWarning = document.getElementById("cube-js-warning-" + viewerId);
+      const jsWarningText = jsWarning ? jsWarning.querySelector(".cube-warning-text") : null;
+
+      const showWarning = (message) => {{
+        if (!jsWarning) return;
+        if (jsWarningText && message) {{
+          jsWarningText.innerHTML = message;
         }}
+        jsWarning.classList.remove("hidden");
+      }};
 
-        const canvas = root.querySelector("#cube-canvas-{fig_id}");
-        const cubeRotation = root.querySelector("#cube-rotation-{fig_id}");
-        const dragSurface = root.querySelector("#cube-drag-{fig_id}")
-          || root.querySelector("#cube-wrapper-{fig_id}")
-          || canvas;
-        const jsWarning = root.querySelector("#cube-js-warning-{fig_id}");
-        const jsWarningText = jsWarning ? jsWarning.querySelector(".cube-warning-text") : null;
+      const data = root.dataset || {{}};
+      let rotationX = (parseFloat(data.rotX) || 0) * Math.PI / 180;
+      let rotationY = (parseFloat(data.rotY) || 0) * Math.PI / 180;
+      let zoom = parseFloat(data.zoom) || 1;
+      const zoomMin = 0.35;
+      const zoomMax = 6.0;
 
-        const data = root.dataset || {{}};
-        let rotationX = (parseFloat(data.rotX) || 0) * Math.PI / 180;
-        let rotationY = (parseFloat(data.rotY) || 0) * Math.PI / 180;
-        let zoom = parseFloat(data.zoom) || 1;
-        const zoomMin = 0.35;
-        const zoomMax = 6.0;
-
+      try {{
         if (!canvas || !cubeRotation) {{
-            if (jsWarning) {{
-                if (jsWarningText) {{
-                    jsWarningText.innerHTML = '<strong>Interactive controls unavailable.</strong> Viewer elements failed to initialize.';
-                }}
-                jsWarning.classList.remove("hidden");
-            }}
-            return;
+          showWarning("<strong>Interactive controls unavailable.</strong> Viewer elements failed to initialize.");
+          return;
         }}
 
         const gl = canvas.getContext("webgl");
 
         function applyCubeRotation() {{
-            if (!cubeRotation) return;
-            cubeRotation.style.transform = 'rotateX(' + rotationX + 'rad) rotateY(' + rotationY + 'rad) scale(' + (1/zoom) + ')';
+          cubeRotation.style.transform = 'rotateX(' + rotationX + 'rad) rotateY(' + rotationY + 'rad) scale(' + (1/zoom) + ')';
         }}
 
         applyCubeRotation();
 
-        // Pointer handling happens on a dedicated grab surface above the cube
-        // so rotation works regardless of which face is visible.
         let dragging = false;
         let activePointerId = null;
         let startX = 0, startY = 0;
         let startRotX = rotationX, startRotY = rotationY;
 
         const handlePointerMove = (e) => {{
-            if (!dragging || (activePointerId !== null && e.pointerId !== activePointerId)) {{
-                return;
-            }}
-            const dx = e.clientX - startX;
-            const dy = e.clientY - startY;
-            rotationY = startRotY + dx * 0.01;
-            rotationX = startRotX + dy * 0.01;
-            applyCubeRotation();
+          if (!dragging || (activePointerId !== null && e.pointerId !== activePointerId)) {{
+            return;
+          }}
+          const dx = e.clientX - startX;
+          const dy = e.clientY - startY;
+          rotationY = startRotY + dx * 0.01;
+          rotationX = startRotX + dy * 0.01;
+          applyCubeRotation();
         }};
 
-        function stopDragging(e) {{
-            if (!dragging) return;
-            dragging = false;
-            window.removeEventListener("pointermove", handlePointerMove);
-            if (dragSurface && activePointerId !== null && dragSurface.hasPointerCapture(activePointerId)) {{
-                dragSurface.releasePointerCapture(activePointerId);
-            }}
-            if (dragSurface) {{
-                dragSurface.style.cursor = "grab";
-            }}
-            activePointerId = null;
+        function stopDragging() {{
+          if (!dragging) return;
+          dragging = false;
+          window.removeEventListener("pointermove", handlePointerMove);
+          if (dragSurface && activePointerId !== null && dragSurface.hasPointerCapture(activePointerId)) {{
+            dragSurface.releasePointerCapture(activePointerId);
+          }}
+          if (dragSurface) {{
+            dragSurface.style.cursor = "grab";
+          }}
+          activePointerId = null;
         }}
 
         if (dragSurface) {{
-            dragSurface.style.cursor = "grab";
-            dragSurface.style.touchAction = "none";
+          dragSurface.style.cursor = "grab";
+          dragSurface.style.touchAction = "none";
 
-            dragSurface.addEventListener("pointerdown", e => {{
-                e.preventDefault();
-                e.stopPropagation();
-                dragging = true;
-                activePointerId = e.pointerId;
-                startX = e.clientX;
-                startY = e.clientY;
-                startRotX = rotationX;
-                startRotY = rotationY;
-                dragSurface.setPointerCapture(e.pointerId);
-                dragSurface.style.cursor = "grabbing";
-                window.addEventListener("pointermove", handlePointerMove);
-            }});
+          dragSurface.addEventListener("pointerdown", e => {{
+            e.preventDefault();
+            e.stopPropagation();
+            dragging = true;
+            activePointerId = e.pointerId;
+            startX = e.clientX;
+            startY = e.clientY;
+            startRotX = rotationX;
+            startRotY = rotationY;
+            dragSurface.setPointerCapture(e.pointerId);
+            dragSurface.style.cursor = "grabbing";
+            window.addEventListener("pointermove", handlePointerMove);
+          }});
 
-            dragSurface.addEventListener("pointerup", e => {{
-                stopDragging(e);
-            }});
+          dragSurface.addEventListener("pointerup", () => {{
+            stopDragging();
+          }});
 
-            dragSurface.addEventListener("wheel", e => {{
-                e.preventDefault();
-                const delta = e.deltaY;
-                const zoomFactor = Math.exp(delta * 0.0015);
-                zoom = Math.min(zoomMax, Math.max(zoomMin, zoom * zoomFactor));
-                applyCubeRotation();
-            }}, {{ passive: false }});
+          dragSurface.addEventListener("wheel", e => {{
+            e.preventDefault();
+            const delta = e.deltaY;
+            const zoomFactor = Math.exp(delta * 0.0015);
+            zoom = Math.min(zoomMax, Math.max(zoomMin, zoom * zoomFactor));
+            applyCubeRotation();
+          }}, {{ passive: false }});
+        }} else {{
+          showWarning("<strong>Interactive controls unavailable.</strong> Drag surface missing.");
         }}
 
-        window.addEventListener("pointerup", e => {{
-            stopDragging(e);
-        }});
-
-        window.addEventListener("pointercancel", e => {{
-            stopDragging(e);
-        }});
+        window.addEventListener("pointerup", () => stopDragging());
+        window.addEventListener("pointercancel", () => stopDragging());
 
         if (!gl) {{
-            console.warn('[CubeViewer] WebGL unavailable; rendering CSS cube only.');
-            if (jsWarning) {{
-                if (jsWarningText) {{
-                    jsWarningText.innerHTML = '<strong>WebGL unavailable.</strong> Falling back to CSS-only cube rendering (rotation and zoom still work).';
-                }}
-                jsWarning.classList.remove("hidden");
-            }}
-        }} else {{
-
-        // Basic cube vertex shader + fragment shader (colored faces)
-        const vs = `
-          attribute vec3 pos;
-          uniform mat4 mvp;
-          void main() {{ gl_Position = mvp * vec4(pos, 1.0); }}
-        `;
-        const fs = `
-          precision highp float;
-          void main() {{ gl_FragColor = vec4(0.2, 0.6, 0.3, 0.8); }}
-        `;
-
-        function compile(type, src) {{
-            const s = gl.createShader(type);
-            gl.shaderSource(s, src);
-            gl.compileShader(s);
-            return s;
+          console.warn("[CubeViewer] WebGL unavailable; rendering CSS cube only for viewerId", viewerId);
+          showWarning('<strong>WebGL unavailable.</strong> Falling back to CSS-only cube rendering (rotation and zoom still work).');
         }}
-
-        const program = gl.createProgram();
-        gl.attachShader(program, compile(gl.VERTEX_SHADER, vs));
-        gl.attachShader(program, compile(gl.FRAGMENT_SHADER, fs));
-        gl.linkProgram(program);
-        gl.useProgram(program);
-
-        const cubeVerts = new Float32Array([
-            // 8 cube vertices for wireframe
-            -1,-1,-1,  1,-1,-1,  1,1,-1,  -1,1,-1,
-            -1,-1, 1,  1,-1, 1,  1,1, 1,  -1,1, 1
-        ]);
-
-        const lines = new Uint16Array([
-            0,1, 1,2, 2,3, 3,0,
-            4,5, 5,6, 6,7, 7,4,
-            0,4, 1,5, 2,6, 3,7
-        ]);
-
-        const vbo = gl.createBuffer();
-        gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
-        gl.bufferData(gl.ARRAY_BUFFER, cubeVerts, gl.STATIC_DRAW);
-
-        const lbo = gl.createBuffer();
-        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, lbo);
-        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, lines, gl.STATIC_DRAW);
-
-        const posLoc = gl.getAttribLocation(program, "pos");
-        gl.enableVertexAttribArray(posLoc);
-        gl.vertexAttribPointer(posLoc, 3, gl.FLOAT, false, 0, 0);
-
-        function resize() {{
-            const rect = canvas.parentElement.getBoundingClientRect();
-            canvas.width = rect.width;
-            canvas.height = rect.height;
-            gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
-        }}
-        resize();
-        window.addEventListener('resize', resize);
-
-        function draw() {{
-            gl.clearColor(1,1,1,0);
-            gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-
-            const aspect = canvas.width / canvas.height;
-            const fov = 1.0;
-            const near = 0.1;
-            const far = 20.0;
-
-            function persp(a,f,n,r) {{
-                const t = n * Math.tan(f/2);
-                return new Float32Array([
-                    n/t,0,0,0,
-                    0,n/(t/a),0,0,
-                    0,0,-(r+n)/(r-n),-1,
-                    0,0,-(2*r*n)/(r-n),0
-                ]);
-            }}
-
-            function rotX(a) {{ return new Float32Array([
-                1,0,0,0,
-                0, Math.cos(a), -Math.sin(a),0,
-                0, Math.sin(a), Math.cos(a),0,
-                0,0,0,1
-            ]);}}
-
-            function rotY(a) {{ return new Float32Array([
-                Math.cos(a),0, Math.sin(a),0,
-                0,1,0,0,
-                -Math.sin(a),0, Math.cos(a),0,
-                0,0,0,1
-            ]);}}
-
-            const proj = persp(aspect, fov, near, far);
-            const rx = rotX(rotationX);
-            const ry = rotY(rotationY);
-            const scale = new Float32Array([
-                1/zoom,0,0,0,
-                0,1/zoom,0,0,
-                0,0,1/zoom,0,
-                0,0,0,1
-            ]);
-
-            // Combine matrices proj * scale * ry * rx
-            let mvp = new Float32Array(16);
-            function mul(a,b) {{
-                const o=new Float32Array(16);
-                for (let i=0;i<4;i++)
-                for (let j=0;j<4;j++){{
-                    o[i*4+j]=0;
-                    for (let k=0;k<4;k++)
-                        o[i*4+j]+=a[i*4+k]*b[k*4+j];
-                }}
-                return o;
-            }}
-            mvp = mul(proj, mul(scale, mul(ry, rx)));
-
-            const loc = gl.getUniformLocation(program,"mvp");
-            gl.uniformMatrix4fv(loc,false,mvp);
-
-            gl.drawElements(gl.LINES, lines.length, gl.UNSIGNED_SHORT, 0);
-
-            requestAnimationFrame(draw);
-          }}
-        draw();
-        }}
-    }})();
-    }} catch (err) {{
-      console.error('[CubeViewer] top-level error', err);
-      const root = document.getElementById("{figure_id}");
-      const jsWarning = root ? root.querySelector("#cube-js-warning-{fig_id}") : null;
-      if (jsWarning) {{
-        jsWarning.classList.remove("hidden");
+      }} catch (err) {{
+        console.error("[CubeViewer] Failed to initialize viewer", viewerId, err);
+        showWarning("<strong>Interactive controls unavailable.</strong> Failed to initialize viewer script.");
       }}
-    }}
 
-    const root = document.getElementById("{figure_id}");
-    const cbMin = root ? root.getAttribute("data-cb-min") : null;
-    const cbMax = root ? root.getAttribute("data-cb-max") : null;
-    if (cbMin !== null) {{
-      const minEl = root ? root.querySelector("#cb-min") : null;
-      if (minEl) minEl.innerText = cbMin;
-    }}
-    if (cbMax !== null) {{
-      const maxEl = root ? root.querySelector("#cb-max") : null;
-      if (maxEl) maxEl.innerText = cbMax;
-    }}
+      const cbMin = root.getAttribute("data-cb-min");
+      const cbMax = root.getAttribute("data-cb-max");
+      if (cbMin !== null) {{
+        const minEl = document.getElementById("cb-min-" + viewerId);
+        if (minEl) minEl.innerText = cbMin;
+      }}
+      if (cbMax !== null) {{
+        const maxEl = document.getElementById("cb-max-" + viewerId);
+        if (maxEl) maxEl.innerText = cbMax;
+      }}
+    }})();
   </script>
 </body>
 </html>
@@ -830,6 +700,8 @@ def cube_from_dataarray(
 ):
     volume_density = volume_density or {"time": 6, "x": 2, "y": 2}
     volume_downsample = volume_downsample or {"time": 4, "space": 4}
+
+    viewer_id = uuid.uuid4().hex
 
     da = _reduce_to_3d_time_y_x(da)
 
@@ -1065,6 +937,7 @@ def cube_from_dataarray(
         colorbar_b64=colorbar_b64,
         fill_breaks=fill_breaks,
         fill_labels=fill_labels,
+        viewer_id=viewer_id,
     )
     title_html = f"<div class=\"cube-title\">{derived_title}</div>"
 
@@ -1087,14 +960,19 @@ def cube_from_dataarray(
             axis_meta=axis_meta,
             color_limits=(vmin, vmax),
             interior_meta=interior_meta,
+            viewer_id=viewer_id,
         )
         with open(out_html, "w", encoding="utf-8") as f:
             f.write(full_html)
         if return_html:
             return full_html
-        # Embed the exact standalone HTML in notebooks so the inline JS runs
-        # without iframe sandboxing and preserves pointer interactivity.
-        return HTML(full_html)
+        prefix = Path(out_html).stem or "cube_viewer"
+        return show_cube_viewer(
+            full_html,
+            width=max(850, size_px + 300),
+            height=max(850, size_px + 300),
+            prefix=prefix,
+        )
 
     ts = volume_density.get("time", 6)
     xs = volume_density.get("x", 2)
@@ -1159,6 +1037,7 @@ def cube_from_dataarray(
         axis_meta=axis_meta,
         color_limits=(vmin, vmax),
         interior_meta=interior_meta,
+        viewer_id=viewer_id,
     )
 
     with open(out_html, "w", encoding="utf-8") as f:
@@ -1166,9 +1045,13 @@ def cube_from_dataarray(
 
     if return_html:
         return full_html
-    # Same embedding strategy as the shell viewer: inject the full HTML so the
-    # notebook and exported file share identical interactivity.
-    return HTML(full_html)
+    prefix = Path(out_html).stem or "cube_viewer"
+    return show_cube_viewer(
+        full_html,
+        width=max(850, size_px + 300),
+        height=max(850, size_px + 300),
+        prefix=prefix,
+    )
 
 
 def _guess_axis_name(da: xr.DataArray, dim: str) -> str:

@@ -3,6 +3,8 @@ import pandas as pd
 import xarray as xr
 
 from cubedynamics import pipe, verbs as v
+from pathlib import Path
+
 from cubedynamics.plotting.cube_plot import CubePlot
 
 
@@ -23,5 +25,11 @@ def test_plot_mean_attaches_viewer_and_returns_original_cube():
     assert isinstance(viewer, CubePlot)
 
     html = viewer._repr_html_()
-    assert "cube-figure" in html
+    assert "<iframe" in html
+    iframe = getattr(viewer, "_last_iframe", None)
+    assert iframe is not None
+    iframe_path = Path(getattr(iframe, "cube_viewer_path"))
+    assert iframe_path.exists()
+    content = iframe_path.read_text()
+    assert "cube-figure-" in content
 
