@@ -403,7 +403,11 @@ def compute_time_hull_geometry(
     Z_use = np.array(Z[:M], float)
     areas_use = np.array(areas_m2[:M], float)
     if len(Z_use) >= 2:
-        hull_volume_m2_days = float(np.trapezoid(areas_use, Z_use))
+        integrator = getattr(np, "trapezoid", None)
+        if integrator is None:
+            hull_volume_m2_days = float(np.trapz(areas_use, x=Z_use))
+        else:
+            hull_volume_m2_days = float(integrator(areas_use, Z_use))
     else:
         hull_volume_m2_days = 0.0
     hull_volume_km2_days = hull_volume_m2_days / 1e6
