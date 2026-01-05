@@ -21,7 +21,8 @@ def _synthetic_event():
 
 
 def _grid_like_cube(name: str = "vpd"):
-    times = pd.date_range("2020-06-25", periods=6, freq="D")
+    # Ensure temporal overlap with the synthetic event dates (2020-07-01 to 2020-07-03)
+    times = pd.date_range("2020-06-30", periods=8, freq="D")
     y = np.linspace(40.0, 40.25, 5)
     x = np.linspace(-105.2, -104.8, 5)
     data = np.random.default_rng(0).normal(size=(len(times), len(y), len(x)))
