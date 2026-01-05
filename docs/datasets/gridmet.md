@@ -3,6 +3,44 @@
 ### What this dataset is
 gridMET is a gridded surface meteorology product for the contiguous United States at ~4 km (1/24°) resolution with daily observations back to 1979. Variables include precipitation, maximum/minimum temperature, humidity, vapor pressure deficit, and wind, arranged on a regular latitude–longitude grid.
 
+## Quickstart
+
+### Get the stream (CubeDynamics grammar)
+
+```python
+import cubedynamics as cd
+from cubedynamics import pipe, verbs as v
+
+cube = cd.gridmet(
+    lat=40.0,
+    lon=-105.25,
+    start="2020-06-01",
+    end="2020-06-30",
+    variable="tmmx",
+)
+
+pipe(cube) | v.mean(dim="time") | v.plot()
+```
+
+### Preview plot
+
+![gridMET preview](../assets/datasets/gridmet-preview.png)
+
+!!! note
+    Image placeholder — after running the code below locally, save a screenshot to `docs/assets/datasets/gridmet-preview.png`.
+
+### Regenerate this plot
+
+1. Run the Quickstart code block in a local Python session or notebook.
+2. Capture the viewer returned by the pipe:
+
+    ```python
+    viewer = (pipe(cube) | v.mean(dim="time") | v.plot()).unwrap()
+    viewer.save("docs/assets/datasets/gridmet-preview.html")
+    ```
+
+3. Open `docs/assets/datasets/gridmet-preview.html` in a browser and take a 1200×700 px PNG screenshot saved to `docs/assets/datasets/gridmet-preview.png`.
+
 ### Who collects it and why
 The dataset is produced by John Abatzoglou and collaborators at the University of Idaho to support ecological, hydrological, and fire-weather applications across CONUS. It blends PRISM climatology with NLDAS reanalysis to provide spatially consistent daily meteorology widely used in ecological forecasting and climate impact studies.
 

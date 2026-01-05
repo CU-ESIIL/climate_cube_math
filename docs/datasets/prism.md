@@ -3,6 +3,43 @@
 ### What this dataset is
 PRISM (Parameter-elevation Regressions on Independent Slopes Model) provides gridded precipitation and temperature analyses for the United States at approximately 4 km resolution. Monthly and daily fields span the late 20th century to present on a regular latitude–longitude grid, capturing fine-scale orographic effects.
 
+## Quickstart
+
+### Get the stream (CubeDynamics grammar)
+
+```python
+import cubedynamics as cd
+from cubedynamics import pipe, verbs as v
+
+cube = cd.load_prism_cube(
+    variables=["ppt"],
+    start="2020-01-01",
+    end="2020-02-01",
+    aoi={"min_lat": 39.8, "max_lat": 40.2, "min_lon": -105.4, "max_lon": -105.0},
+)
+
+pipe(cube["ppt"]) | v.mean(dim="time") | v.plot()
+```
+
+### Preview plot
+
+![PRISM preview](../assets/datasets/prism-preview.png)
+
+!!! note
+    Image placeholder — after running the code below locally, save a screenshot to `docs/assets/datasets/prism-preview.png`.
+
+### Regenerate this plot
+
+1. Execute the Quickstart snippet locally to build the precipitation cube.
+2. Capture the CubePlot viewer for export:
+
+    ```python
+    viewer = (pipe(cube["ppt"]) | v.mean(dim="time") | v.plot()).unwrap()
+    viewer.save("docs/assets/datasets/prism-preview.html")
+    ```
+
+3. Open `docs/assets/datasets/prism-preview.html` in a browser and save a 1200×700 px PNG screenshot to `docs/assets/datasets/prism-preview.png`.
+
 ### Who collects it and why
 The PRISM Climate Group at Oregon State University produces the dataset to deliver high-quality, terrain-aware climate normals and time series. It is widely used for hydrology, ecology, and agricultural studies where spatial detail and long-term consistency are critical.
 
