@@ -1,0 +1,1 @@
+This folder holds workflow screenshots referenced by recipe pages. The `fire_event_vase_hull.png` placeholder is for the fire_plot vase/hull workflow; export a ~1200×700 image to `docs/assets/workflows/fire_event_vase_hull.png` after running the recipe locally.
