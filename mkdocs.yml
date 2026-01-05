@@ -30,6 +30,7 @@ nav:
       - Cube math primitives: recipes/cube_math_primitives.md
       - gridMET variance cube: recipes/gridmet_variance_cube.md
       - PRISM variance cube: recipes/prism_variance_cube.md
+      - Fire event vase + climate merge (fire_plot): recipes/fire_event_vase_hull.md
       - Sentinel-2 NDVI z-score cube: recipes/s2_ndvi_zcube.md
       - Sentinel-2 correlation center: recipes/s2_corr_center.md
       - Sentinel-2 tail dependence (center): recipes/s2_tail_dep_center.md

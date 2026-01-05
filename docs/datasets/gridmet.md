@@ -60,6 +60,8 @@ The dataset is produced by John Abatzoglou and collaborators at the University o
 ### Citation
 Abatzoglou, J. T. (2013). Development of gridded surface meteorological data for ecological applications. *International Journal of Climatology*, 33(1), 121–131. https://doi.org/10.1002/joc.3413
 
+See also: [Fire event vase + climate merge (fire_plot)](../recipes/fire_event_vase_hull.md)
+
 ---
-Back to [Datasets Overview](index.md)  
+Back to [Datasets Overview](index.md)
 Next recommended page: [Which dataset should I use?](which_dataset.md)

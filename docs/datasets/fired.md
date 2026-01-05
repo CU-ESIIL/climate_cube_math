@@ -61,6 +61,8 @@ FIRED layers are pulled from a CU Scholar ZIP archive, extracted on-the-fly, and
 ### Citation
 Balch, J. K., Iglesias, V., Braswell, A., Rossi, M. W., Joseph, M. B., Mahood, A., Arkle, R. S., & Boer, M. M. (2020). FIRED: A global fire event database. *Scientific Data*, 7, 164. https://doi.org/10.1038/s41597-020-0524-5
 
+See also: [Fire event vase + climate merge (fire_plot)](../recipes/fire_event_vase_hull.md)
+
 ---
-Back to [Datasets Overview](index.md)  
+Back to [Datasets Overview](index.md)
 Next recommended page: [Which dataset should I use?](which_dataset.md)
