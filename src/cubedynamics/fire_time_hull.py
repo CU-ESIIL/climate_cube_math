@@ -815,6 +815,7 @@ def build_inside_outside_climate_samples(
     cube: ClimateCube,
     *,
     date_col: str = "date",
+    verbose: bool = False,
 ) -> HullClimateSummary:
     """
     Sample climate values inside and outside daily fire perimeters.
@@ -828,6 +829,8 @@ def build_inside_outside_climate_samples(
         interest for the event window.
     date_col
         Column in ``event.gdf`` that carries the daily perimeter date.
+    verbose
+        Unused flag preserved for compatibility with legacy wrappers.
 
     Returns
     -------
