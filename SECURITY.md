@@ -1,6 +1,6 @@
 # Security Policy
 
-Thank you for helping keep Climate Cube Math (CubeDynamics) secure.
+Thank you for helping keep CubeDynamics secure.
 
 ## Reporting a vulnerability
 

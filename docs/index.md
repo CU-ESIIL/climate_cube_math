@@ -1,7 +1,9 @@
-# Climate Cube Math
-**A grammar-of-graphics for spatiotemporal environmental data**
+# CubeDynamics
+CubeDynamics: a composable grammar of operations for spatiotemporal data cubes.
 
-Climate Cube Math keeps spatial and temporal dimensions together so you can reason about **space, time, scale, and events** without breaking your workflow apart. Use it to build reproducible pipelines that stream or analyze cubes in memory.
+> **Naming note (temporary):** The project is branded as **CubeDynamics**, but the repository, documentation URL, and Python package/distribution name still use `climate_cube_math` while we complete the rename. Installation and imports remain unchanged for now.
+
+CubeDynamics keeps spatial and temporal dimensions together so you can reason about **space, time, scale, and events** without breaking your workflow apart. Use it to build reproducible pipelines that stream or analyze cubes in memory.
 
 ## Jump into the docs
 <div class="ccm-card-grid">
@@ -37,7 +39,7 @@ If you feel lost, start with the [Documentation Overview](overview.md) or pick a
 
 Need dataset attribution? See [Dataset citations](datasets/citations.md).
 
-## Why Climate Cube Math Exists
+## Why CubeDynamics Exists
 Most environmental datasets already *are* data cubes:
 - climate grids evolving through time
 - vegetation indices measured repeatedly over landscapes
@@ -49,7 +51,7 @@ But most workflows **break the cube apart**:
 - statistics happen elsewhere
 - visualization happens last
 
-Climate Cube Math keeps these dimensions **together**.
+CubeDynamics keeps these dimensions **together**.
 
 The result is a framework that lets you ask questions like:
 - *How does climate variability change inside vs. outside an event?*
@@ -65,7 +67,7 @@ A **climate data cube** is a 3-dimensional object:
 value(x, y, time)
 ```
 
-Instead of treating space and time separately, Climate Cube Math treats them as **co-equal axes** of analysis.
+Instead of treating space and time separately, CubeDynamics treats them as **co-equal axes** of analysis.
 
 This allows operations like:
 - computing statistics *through time at every pixel*
@@ -76,7 +78,7 @@ This allows operations like:
 The cube is not just a storage format.
 It is the **unit of reasoning**.
 
-## What Climate Cube Math Enables
+## What CubeDynamics Enables
 ### Spatiotemporal Operations
 Operations are defined on the cube itself—not on slices or tables derived from it.
 
@@ -119,7 +121,7 @@ This enables:
 - causal framing of spatiotemporal patterns
 
 ## Who This Is For
-Climate Cube Math is designed for:
+CubeDynamics is designed for:
 
 - Climate & Earth system scientists
 - Ecologists and macrosystems researchers

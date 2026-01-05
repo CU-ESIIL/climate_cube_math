@@ -1,10 +1,12 @@
-# Climate Cube Math
+# CubeDynamics
 
 ![Tests](https://github.com/CU-ESIIL/climate_cube_math/actions/workflows/tests.yml/badge.svg) ![Docs](https://github.com/CU-ESIIL/climate_cube_math/actions/workflows/pages.yml/badge.svg)
 
-**A grammar-of-graphics for spatiotemporal environmental data**
+CubeDynamics: a composable grammar of operations for spatiotemporal data cubes.
 
-Climate Cube Math (also referred to as **CubeDynamics**) is a Python framework for analyzing environmental data as **spatiotemporal cubes**, rather than disconnected maps and time series.
+> **Naming note (temporary):** The project is branded as **CubeDynamics**, but the repository, documentation URL, and Python package/distribution name still use `climate_cube_math` while we complete the rename. Installation and imports remain unchanged for now.
+
+CubeDynamics is a Python framework for analyzing environmental data as **spatiotemporal cubes**, rather than disconnected maps and time series.
 
 It is designed for scientists and data practitioners who want to reason explicitly about **space, time, scale, and events**—and to do so reproducibly and efficiently, even for large datasets.
 
@@ -23,11 +25,11 @@ Yet most workflows break these dimensions apart:
 - statistics elsewhere
 - visualization last
 
-Climate Cube Math keeps **space and time together**, making spatiotemporal structure a first-class part of the analysis.
+CubeDynamics keeps **space and time together**, making spatiotemporal structure a first-class part of the analysis.
 
 ---
 
-## What Climate Cube Math enables
+## What CubeDynamics enables
 
 - **Spatiotemporal cube operations** (means, variance, anomalies, synchrony)
 - **Grammar-based pipelines** using `pipe | verb | verb`
@@ -116,7 +118,7 @@ See the documentation for the public API and stability guarantees.
 
 ---
 
-## Citing
+## Cite CubeDynamics
 
 Please cite the project using the guidance in [CITATION.cff](CITATION.cff).
 A Zenodo DOI will be minted after the first tagged release; the placeholder DOI

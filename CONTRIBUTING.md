@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for your interest in improving Climate Cube Math (CubeDynamics)!
+Thanks for your interest in improving CubeDynamics!
 
 - Read the full guidelines in [docs/dev/contributing.md](docs/dev/contributing.md).
 - Set up a development environment with:

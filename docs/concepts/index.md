@@ -16,12 +16,12 @@ Key links:
 - Orientation aids: [Documentation Overview](../overview.md) and [Reading Paths](../reading_paths.md)
 
 ## Cube grammar pipeline
-Climate Cube Math expresses analysis as a sequence of verbs connected by pipes, operating on explicit cube dimensions. This grammar keeps space, time, and scale visible throughout a workflow and ensures that intermediate steps remain inspectable.
+CubeDynamics expresses analysis as a sequence of verbs connected by pipes, operating on explicit cube dimensions. This grammar keeps space, time, and scale visible throughout a workflow and ensures that intermediate steps remain inspectable.
 
 ![Cube grammar pipeline](../assets/diagrams/cube_grammar_pipeline.png)
 
 ## Dimensions stay explicit
-At its core, Climate Cube Math works with xarray-backed DataArrays but applies strong semantics:
+At its core, CubeDynamics works with xarray-backed DataArrays but applies strong semantics:
 - named spatial and temporal dimensions
 - metadata about resolution, alignment, and scale
 - consistency enforced across operations

@@ -6,7 +6,7 @@ FIRED provides event-level and per-day fire perimeter polygons for the contermin
 ### Who collects it and why
 FIRED was assembled by Balch, Iglesias, and collaborators to provide a consistent, research-grade record of wildland fire events for studying drivers, impacts, and fire–climate interactions. Its coverage and methodological transparency make it a common reference for fire science in North America.
 
-### How Climate Cube Math accesses it
+### How CubeDynamics accesses it
 FIRED layers are pulled from a CU Scholar ZIP archive, extracted on-the-fly, and cached locally in a user directory. Functions load the requested layer (events or daily perimeters), reproject to EPSG:4326, and return GeoDataFrames ready to intersect with climate cubes. Users can opt into automatic downloads or rely on pre-populated cache files for offline analysis.
 
 ### Important variables and dimensions

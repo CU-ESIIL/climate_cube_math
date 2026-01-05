@@ -6,7 +6,7 @@ PRISM (Parameter-elevation Regressions on Independent Slopes Model) provides gri
 ### Who collects it and why
 The PRISM Climate Group at Oregon State University produces the dataset to deliver high-quality, terrain-aware climate normals and time series. It is widely used for hydrology, ecology, and agricultural studies where spatial detail and long-term consistency are critical.
 
-### How Climate Cube Math accesses it
+### How CubeDynamics accesses it
 `load_prism_cube` mirrors the gridMET contract: it first attempts remote streaming, cropping the requested AOI and resampling to the desired temporal frequency, then chunks the result for lazy evaluation. If the streaming backend is unavailable, it falls back to a small synthetic download while preserving coordinate metadata. AOIs can be expressed as point buffers, bounding boxes, or GeoJSON, enabling rapid exploratory analyses without full archive downloads.
 
 ### Important variables and dimensions
