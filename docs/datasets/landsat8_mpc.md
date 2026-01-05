@@ -3,6 +3,43 @@
 ## Overview
 `landsat8_mpc` streams Landsat 8 Collection 2 Level-2 surface reflectance directly from the Microsoft Planetary Computer (MPC) STAC API. The verb signs COG URLs using the `planetary_computer` SDK and stacks the requested bands into a lazy, dask-backed DataArray with dimensions `(time, band, y, x)`.
 
+## Quickstart
+
+### Get the stream (CubeDynamics grammar)
+
+```python
+import cubedynamics as cd
+from cubedynamics import pipe, verbs as v
+
+bbox = [-105.35, 39.9, -105.15, 40.1]
+cube = (
+    pipe(None)
+    | v.landsat8_mpc(bbox=bbox, start="2019-07-01", end="2019-07-10")
+).unwrap()
+
+ndvi = (cube.sel(band="nir") - cube.sel(band="red")) / (cube.sel(band="nir") + cube.sel(band="red"))
+pipe(ndvi) | v.plot(time_dim="time")
+```
+
+### Preview plot
+
+![Landsat 8 MPC preview](assets/datasets/landsat8_mpc-preview.png)
+
+!!! note
+    Image placeholder — after running the code below locally, save a screenshot to `docs/assets/datasets/landsat8_mpc-preview.png`.
+
+### Regenerate this plot
+
+1. Run the Quickstart snippet to stream a small Landsat 8 stack and compute NDVI.
+2. Capture the viewer returned by the plotting verb:
+
+    ```python
+    viewer = (pipe(ndvi) | v.plot(time_dim="time")).unwrap()
+    viewer.save("docs/assets/datasets/landsat8_mpc-preview.html")
+    ```
+
+3. Open `docs/assets/datasets/landsat8_mpc-preview.html` in a browser and save a 1200×700 px PNG screenshot to `docs/assets/datasets/landsat8_mpc-preview.png`.
+
 ## Required arguments
 - `bbox` – `[min_lon, min_lat, max_lon, max_lat]` geographic bounding box.
 - `start` – ISO start date string (e.g., `"2019-07-01").
