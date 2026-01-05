@@ -12,17 +12,23 @@ from typing import Sequence
 
 import xarray as xr
 
+from .data import sentinel2 as _s2
 from .data.sentinel2 import load_s2_cube, load_s2_ndvi_cube
 from .deprecations import warn_deprecated
 from .piping import pipe
 from . import verbs as v
 
 __all__ = [
+    "cubo",
     "load_sentinel2_cube",
     "load_sentinel2_bands_cube",
     "load_sentinel2_ndvi_cube",
     "load_sentinel2_ndvi_zscore_cube",
 ]
+
+# Expose cubo for backward compatibility and test injection. By default this
+# mirrors the canonical cubo instance used by :mod:`cubedynamics.data.sentinel2`.
+cubo = _s2.cubo
 
 
 def load_sentinel2_cube(
@@ -56,19 +62,36 @@ def load_sentinel2_cube(
         lat, lon, bbox, edge_size, resolution
     )
 
-    cube = load_s2_cube(
-        lat=lat,
-        lon=lon,
-        start=start,
-        end=end,
-        edge_size=edge_size,
-        resolution=resolution,
-        cloud_lt=max_cloud,
-        bands=bands,
-    )
+    # Allow test and legacy callers to swap in a custom ``cubo`` implementation
+    # by monkeypatching ``cubedynamics.sentinel.cubo``. If no override is
+    # provided, fall back to the canonical loader.
+    if cubo is not None and hasattr(cubo, "create") and cubo is not _s2.cubo:
+        cube = cubo.create(
+            lat=lat,
+            lon=lon,
+            start_date=start,
+            end_date=end,
+            edge_size=edge_size,
+            resolution=resolution,
+            collection="sentinel-2-l2a",
+            bands=bands or ["B02", "B03", "B04", "B08"],
+            query={"eo:cloud_cover": {"lt": max_cloud}},
+        )
+        data = _s2._to_dataarray(cube)
+    else:
+        data = load_s2_cube(
+            lat=lat,
+            lon=lon,
+            start=start,
+            end=end,
+            edge_size=edge_size,
+            resolution=resolution,
+            cloud_lt=max_cloud,
+            bands=bands,
+        )
 
-    desired_order = [dim for dim in ("time", "y", "x", "band") if dim in cube.dims]
-    return cube.transpose(*desired_order)
+    desired_order = [dim for dim in ("time", "y", "x", "band") if dim in data.dims]
+    return data.transpose(*desired_order)
 
 
 def load_sentinel2_bands_cube(
