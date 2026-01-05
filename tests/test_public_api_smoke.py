@@ -52,8 +52,8 @@ def test_pipe_and_verbs_smoke():
     ).unwrap()
 
     assert isinstance(result, xr.DataArray)
-    assert set(result.dims) == {"y", "x"}
-    assert result.shape == (2, 4)
+    assert set(result.dims) == {"time", "y", "x"}
+    assert result.shape == (1, 2, 4)
 
 
 def test_flatten_and_plot_stub():
