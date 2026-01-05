@@ -81,6 +81,12 @@ def build_fire_event(*args, **kwargs):
 
 
 def compute_time_hull_geometry(*args, **kwargs):
+    """Deprecated. Use :func:`cubedynamics.fire_time_hull.compute_time_hull_geometry` instead.
+
+    This wrapper emits a :class:`DeprecationWarning` and simply forwards all
+    arguments to the canonical implementation in :mod:`cubedynamics.fire_time_hull`.
+    It exists to preserve older import paths while users migrate.
+    """
     warn_deprecated(
         "cubedynamics.ops_fire.time_hull.compute_time_hull_geometry",
         "cubedynamics.fire_time_hull.compute_time_hull_geometry",
@@ -91,6 +97,12 @@ def compute_time_hull_geometry(*args, **kwargs):
 
 
 def time_hull_to_vase(*args, **kwargs):
+    """Deprecated. Use :func:`cubedynamics.fire_time_hull.time_hull_to_vase` instead.
+
+    The shim keeps backward compatibility for callers importing from
+    ``cubedynamics.ops_fire.time_hull`` and relays all parameters unchanged to the
+    canonical function. A :class:`DeprecationWarning` is raised on use.
+    """
     warn_deprecated(
         "cubedynamics.ops_fire.time_hull.time_hull_to_vase",
         "cubedynamics.fire_time_hull.time_hull_to_vase",

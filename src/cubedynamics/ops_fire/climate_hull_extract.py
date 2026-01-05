@@ -36,6 +36,12 @@ def _infer_cube_epsg(*args, **kwargs):
 
 
 def build_inside_outside_climate_samples(*args, **kwargs):
+    """Deprecated. Use :func:`cubedynamics.fire_time_hull.build_inside_outside_climate_samples` instead.
+
+    This shim exists for callers still importing from ``cubedynamics.ops_fire``;
+    it issues a :class:`DeprecationWarning` and delegates all parameters to the
+    canonical backend in :mod:`cubedynamics.fire_time_hull`.
+    """
     warn_deprecated(
         "cubedynamics.ops_fire.climate_hull_extract.build_inside_outside_climate_samples",
         "cubedynamics.fire_time_hull.build_inside_outside_climate_samples",
