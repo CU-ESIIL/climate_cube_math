@@ -24,7 +24,7 @@ pipe(cube) | v.mean(dim="time") | v.plot()
 
 ### Preview plot
 
-![gridMET preview](assets/datasets/gridmet-preview.png)
+![gridMET preview](../assets/datasets/gridmet-preview.png)
 
 !!! note
     Image placeholder — after running the code below locally, save a screenshot to `docs/assets/datasets/gridmet-preview.png`.

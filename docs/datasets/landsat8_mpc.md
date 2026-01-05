@@ -23,7 +23,7 @@ pipe(ndvi) | v.plot(time_dim="time")
 
 ### Preview plot
 
-![Landsat 8 MPC preview](assets/datasets/landsat8_mpc-preview.png)
+![Landsat 8 MPC preview](../assets/datasets/landsat8_mpc-preview.png)
 
 !!! note
     Image placeholder — after running the code below locally, save a screenshot to `docs/assets/datasets/landsat8_mpc-preview.png`.

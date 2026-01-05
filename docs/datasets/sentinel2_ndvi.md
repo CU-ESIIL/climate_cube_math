@@ -23,7 +23,7 @@ pipe(cube) | v.mean(dim="time") | v.plot()
 
 ### Preview plot
 
-![Sentinel-2 NDVI preview](assets/datasets/sentinel2_ndvi-preview.png)
+![Sentinel-2 NDVI preview](../assets/datasets/sentinel2_ndvi-preview.png)
 
 !!! note
     Image placeholder — after running the code below locally, save a screenshot to `docs/assets/datasets/sentinel2_ndvi-preview.png`.

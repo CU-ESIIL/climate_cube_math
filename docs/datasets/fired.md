@@ -25,7 +25,7 @@ pipe(clim) | v.extract(fired_event=fired_evt) | v.fire_plot(fired_event=fired_ev
 
 ### Preview plot
 
-![FIRED preview](assets/datasets/fired-preview.png)
+![FIRED preview](../assets/datasets/fired-preview.png)
 
 !!! note
     Image placeholder — after running the code below locally, save a screenshot to `docs/assets/datasets/fired-preview.png`.

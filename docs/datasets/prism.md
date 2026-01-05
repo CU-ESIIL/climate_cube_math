@@ -23,7 +23,7 @@ pipe(cube["ppt"]) | v.mean(dim="time") | v.plot()
 
 ### Preview plot
 
-![PRISM preview](assets/datasets/prism-preview.png)
+![PRISM preview](../assets/datasets/prism-preview.png)
 
 !!! note
     Image placeholder — after running the code below locally, save a screenshot to `docs/assets/datasets/prism-preview.png`.
