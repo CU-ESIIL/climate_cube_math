@@ -282,6 +282,15 @@ class TimeHull:
 
 
 @dataclass
+class Vase:
+    """Vase-like container derived from a ``TimeHull`` for visualization."""
+
+    verts_km: np.ndarray
+    tris: np.ndarray
+    metadata: Dict[str, Any]
+
+
+@dataclass
 class ClimateCube:
     da: xr.DataArray
 
@@ -561,6 +570,21 @@ def compute_time_hull_geometry(
         t_days_vert=t_days_vert,
         t_norm_vert=t_norm_vert,
         metrics=metrics,
+    )
+
+
+def time_hull_to_vase(hull: TimeHull) -> Vase:
+    """Convert a :class:`TimeHull` into a minimal vase representation."""
+
+    return Vase(
+        verts_km=hull.verts_km,
+        tris=hull.tris,
+        metadata={
+            "metrics": hull.metrics,
+            "event_id": hull.event.event_id,
+            "t_days_vert": hull.t_days_vert,
+            "t_norm_vert": hull.t_norm_vert,
+        },
     )
 
 
