@@ -22,7 +22,7 @@ import xarray as xr
 import geopandas as gpd
 import plotly.graph_objects as go
 import requests
-from shapely.geometry import LineString, MultiPolygon, Polygon
+from shapely.geometry import LineString, MultiPolygon, Point, Polygon
 from shapely.ops import unary_union
 from shapely.prepared import prep
 
@@ -761,8 +761,12 @@ def sample_inside_outside(
                 for iy in range(ny):
                     for ix in range(nx):
                         mask[iy, ix] = poly_prep.covers(cell_polys[iy][ix])
+                if not mask.any():
+                    pts = [Point(xc, yc) for xc, yc in zip(XX.ravel(), YY.ravel())]
+                    inside = np.array([poly_prep.covers(p) for p in pts])
+                    mask = inside.reshape((ny, nx))
             else:
-                pts = [Polygon([(xc, yc)]) for xc, yc in zip(XX.ravel(), YY.ravel())]
+                pts = [Point(xc, yc) for xc, yc in zip(XX.ravel(), YY.ravel())]
                 inside = np.array([poly_prep.covers(p) for p in pts])
                 mask = inside.reshape((ny, nx))
 
