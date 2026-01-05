@@ -1,6 +1,6 @@
 # Project Scope
 
-Climate Cube Math focuses on representing and analyzing spatiotemporal data cubes with a consistent grammar. The goal is to make cube-based analysis explicit, reproducible, and scalable.
+CubeDynamics focuses on representing and analyzing spatiotemporal data cubes with a consistent grammar. The goal is to make cube-based analysis explicit, reproducible, and scalable.
 
 ## What this package does
 - Provides a grammar (pipes and verbs) for spatiotemporal analysis

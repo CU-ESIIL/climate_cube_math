@@ -1,6 +1,6 @@
 # Methods & Citation
 
-Climate Cube Math is grounded in a grammar that makes analytical steps explicit. Each verb corresponds to a documented operation that can be inspected, reproduced, and cited.
+CubeDynamics is grounded in a grammar that makes analytical steps explicit. Each verb corresponds to a documented operation that can be inspected, reproduced, and cited.
 
 ## Methods summary
 - Pipelines declare operations as verbs chained through `pipe(...)`
@@ -12,7 +12,7 @@ Climate Cube Math is grounded in a grammar that makes analytical steps explicit.
 
 ## Citing this project
 When publishing results derived from CubeDynamics:
-- Reference the package by name: **CubeDynamics: Climate Cube Math**
+- Reference the package by name: **CubeDynamics**
 - Include the project repository URL: <https://github.com/CU-ESIIL/climate_cube_math>
 - Note the specific verbs or pipelines used in methods sections
 - Record package version and verb parameterization for reproducibility

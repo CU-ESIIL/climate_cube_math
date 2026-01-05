@@ -1,6 +1,6 @@
 # Contributing
 
-Thank you for helping build CubeDynamics! This project keeps climate cube math lightweight, streaming-first, and well documented.
+Thank you for helping build CubeDynamics! This project keeps CubeDynamics lightweight, streaming-first, and well documented.
 
 ## Repository layout
 

@@ -6,7 +6,7 @@ gridMET is a gridded surface meteorology product for the contiguous United State
 ### Who collects it and why
 The dataset is produced by John Abatzoglou and collaborators at the University of Idaho to support ecological, hydrological, and fire-weather applications across CONUS. It blends PRISM climatology with NLDAS reanalysis to provide spatially consistent daily meteorology widely used in ecological forecasting and climate impact studies.
 
-### How Climate Cube Math accesses it
+### How CubeDynamics accesses it
 `load_gridmet_cube` attempts a streaming backend first, opening yearly NetCDF files over HTTP and subsetting the requested area and time range before chunking into a VirtualCube-like Dask structure. When streaming is unavailable it falls back to a small cached download while preserving the same `(time, y, x)` interface. Users request AOIs by point, bounding box, or GeoJSON, enabling fast analysis without retrieving the full continental archive.
 
 ### Important variables and dimensions

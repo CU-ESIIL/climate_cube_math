@@ -1,6 +1,6 @@
 # Capabilities Overview
 
-This section answers: **What can Climate Cube Math do once your data is in a cube?** Use it to scan the verb surface and decide which operations to combine.
+This section answers: **What can CubeDynamics do once your data is in a cube?** Use it to scan the verb surface and decide which operations to combine.
 
 In this section you'll find:
 - Supported inputs for `pipe(...)` and how they map into cubes or geometries.

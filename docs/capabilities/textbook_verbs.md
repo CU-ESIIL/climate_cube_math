@@ -1,7 +1,7 @@
 # Capabilities & Verbs
-*A textbook-style reference for Climate Cube Math*
+*A textbook-style reference for CubeDynamics*
 
-Climate Cube Math expresses spatiotemporal analysis as a **grammar**:
+CubeDynamics expresses spatiotemporal analysis as a **grammar**:
 
 > **Data → Transformations → Statistics → Events → Visualization**
 

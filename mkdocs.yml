@@ -1,5 +1,5 @@
-site_name: "CubeDynamics: Climate Cube Math"
-site_description: "Streaming-first climate cube math for PRISM, gridMET, and NDVI"
+site_name: "CubeDynamics"
+site_description: "CubeDynamics: a composable grammar of operations for spatiotemporal data cubes."
 site_author: CubeDynamics Team
 site_url: "https://cu-esiil.github.io/climate_cube_math/"
 
