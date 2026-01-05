@@ -17,4 +17,4 @@ When publishing results derived from CubeDynamics:
 - Note the specific verbs or pipelines used in methods sections
 - Record package version and verb parameterization for reproducibility
 
-For formal citation guidance, see [CITATION.cff](../CITATION.cff) or the repository README.
+For formal citation guidance, see [CITATION.cff](CITATION.cff) or the repository README.
