@@ -847,7 +847,7 @@ def build_inside_outside_climate_samples(
     >>> summary.values_inside.size >= 0 and summary.values_outside.size >= 0
     True
     """
-    da = cube.da
+    da = cube.da if hasattr(cube, "da") else cube
     time_vals = pd.to_datetime(da["time"].values)
     dates_clim = time_vals.normalize()
 
