@@ -72,7 +72,9 @@ print("Cube:", getattr(cube, "da", None).shape if hasattr(cube, "da") else type(
 
 !!! tip "Daily by default"
     `fire_plot` now requests daily gridMET/PRISM data for event windows. Explicitly pass
-    `freq="D"` to emphasize daily sampling or a different frequency if needed.
+    `freq="D"` to emphasize daily sampling or a different frequency if needed. Monthly
+    frequencies such as `freq="MS"` can yield empty time axes for short windows—use
+    daily sampling or extend the date range to avoid synthetic fallbacks.
 
 ## What you get back
 `v.fire_plot` returns a dictionary with:

@@ -113,3 +113,135 @@ def test_fire_plot_daily_default(monkeypatch, _fake_gridmet):
     assert cube.sizes.get("time", 0) > 0
     assert cube.attrs.get("freq") == "D"
     assert cube.attrs.get("source") == "gridmet_streaming"
+
+
+def test_fire_plot_forwards_freq(monkeypatch, _fake_gridmet):
+    import geopandas as gpd
+    from shapely.geometry import box
+
+    from cubedynamics.verbs import fire as fire_verbs
+
+    dates = pd.date_range("2020-07-01", periods=2, freq="D")
+    geoms = [box(-120.1, 38.0, -120.0, 38.1) for _ in dates]
+    fired_daily = gpd.GeoDataFrame({"id": [5, 5], "date": dates, "geometry": geoms}, crs="EPSG:4326")
+
+    monkeypatch.setattr(
+        fire_verbs, "compute_time_hull_geometry", lambda *args, **kwargs: type(
+            "Hull",
+            (),
+            {
+                "metrics": {"days": len(dates)},
+                "verts_km": np.zeros((3, 3)),
+                "tris": np.array([[0, 1, 2]]),
+                "t_days_vert": np.array([1.0, 2.0, 2.0]),
+            },
+        )
+    )
+    monkeypatch.setattr(fire_verbs, "plot_climate_filled_hull", lambda *args, **kwargs: "fig")
+
+    fire_verbs.fire_plot(
+        fired_daily=fired_daily,
+        event_id=5,
+        climate_variable="vpd",
+        time_buffer_days=0,
+        allow_synthetic=False,
+        prefer_streaming=False,
+        freq="MS",
+    )
+
+    assert _fake_gridmet["freq"] == "MS"
+
+
+def test_fire_plot_raises_on_empty_time(monkeypatch):
+    import geopandas as gpd
+    from shapely.geometry import box
+
+    from cubedynamics.verbs import fire as fire_verbs
+
+    dates = pd.date_range("2020-07-01", periods=1, freq="D")
+    geoms = [box(-105.1, 40.0, -105.0, 40.1) for _ in dates]
+    fired_daily = gpd.GeoDataFrame({"id": [9], "date": dates, "geometry": geoms}, crs="EPSG:4326")
+
+    def _empty_loader(**kwargs):
+        ds = xr.Dataset({"vpd": xr.DataArray(np.empty((0, 1, 1)), dims=("time", "y", "x"))})
+        ds.attrs["source"] = "gridmet_streaming"
+        ds.attrs["freq"] = kwargs.get("freq")
+        return ds
+
+    monkeypatch.setattr("cubedynamics.data.gridmet.load_gridmet_cube", _empty_loader)
+    monkeypatch.setattr(fire_verbs, "plot_climate_filled_hull", lambda *args, **kwargs: "fig")
+    monkeypatch.setattr(
+        fire_verbs,
+        "compute_time_hull_geometry",
+        lambda *args, **kwargs: type(
+            "Hull",
+            (),
+            {
+                "metrics": {"days": 1},
+                "verts_km": np.zeros((3, 3)),
+                "tris": np.array([[0, 1, 2]]),
+                "t_days_vert": np.array([1.0, 1.0, 1.0]),
+            },
+        ),
+    )
+
+    with pytest.raises(RuntimeError, match="empty time axis"):
+        fire_verbs.fire_plot(
+            fired_daily=fired_daily,
+            event_id=9,
+            climate_variable="vpd",
+            time_buffer_days=0,
+            allow_synthetic=False,
+            prefer_streaming=False,
+            freq="MS",
+        )
+
+
+def test_fire_plot_synthetic_on_empty_time(monkeypatch):
+    import geopandas as gpd
+    from shapely.geometry import box
+
+    from cubedynamics.verbs import fire as fire_verbs
+
+    dates = pd.date_range("2020-07-01", periods=1, freq="D")
+    geoms = [box(-105.1, 40.0, -105.0, 40.1) for _ in dates]
+    fired_daily = gpd.GeoDataFrame({"id": [10], "date": dates, "geometry": geoms}, crs="EPSG:4326")
+
+    def _empty_loader(**kwargs):
+        ds = xr.Dataset({"vpd": xr.DataArray(np.empty((0, 1, 1)), dims=("time", "y", "x"))})
+        ds.attrs["source"] = "gridmet_streaming"
+        ds.attrs["freq"] = kwargs.get("freq")
+        return ds
+
+    monkeypatch.setattr("cubedynamics.data.gridmet.load_gridmet_cube", _empty_loader)
+    monkeypatch.setattr(fire_verbs, "plot_climate_filled_hull", lambda *args, **kwargs: "fig")
+    monkeypatch.setattr(
+        fire_verbs,
+        "compute_time_hull_geometry",
+        lambda *args, **kwargs: type(
+            "Hull",
+            (),
+            {
+                "metrics": {"days": 1},
+                "verts_km": np.zeros((3, 3)),
+                "tris": np.array([[0, 1, 2]]),
+                "t_days_vert": np.array([1.0, 1.0, 1.0]),
+            },
+        ),
+    )
+
+    results = fire_verbs.fire_plot(
+        fired_daily=fired_daily,
+        event_id=10,
+        climate_variable="vpd",
+        time_buffer_days=0,
+        allow_synthetic=True,
+        prefer_streaming=False,
+        freq="MS",
+    )
+
+    cube = results["cube"].da
+    assert cube.attrs.get("is_synthetic") is True
+    assert cube.attrs.get("source") == "synthetic"
+    assert cube.sizes.get("time", 0) > 0
+    assert "backend_error" in cube.attrs

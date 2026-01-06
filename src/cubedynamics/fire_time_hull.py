@@ -931,6 +931,7 @@ def load_climate_cube_for_event(
 ) -> ClimateCube:
     from cubedynamics.data import gridmet as gridmet_loader
     from cubedynamics.data import prism as prism_loader
+    from cubedynamics.utils import set_cube_provenance
 
     start = event.t0 - pd.Timedelta(days=time_buffer_days)
     end = event.t1 + pd.Timedelta(days=time_buffer_days)
@@ -990,6 +991,71 @@ def load_climate_cube_for_event(
             prefer_streaming=prefer_streaming,
             show_progress=verbose,
             allow_synthetic=allow_synth,
+        )
+
+    def _time_and_nan_state(dataset: xr.Dataset) -> tuple[int, bool]:
+        time_len = int(dataset.sizes.get("time", 0)) if hasattr(dataset, "sizes") else 0
+        all_nan = False
+        if dataset.data_vars:
+            indicators = []
+            for var in dataset.data_vars.values():
+                check = var.isnull().all()
+                if hasattr(check, "compute"):
+                    check = check.compute()
+                indicators.append(bool(check))
+            all_nan = all(indicators)
+        return time_len, all_nan
+
+    time_len, all_nan = _time_and_nan_state(ds)
+    if time_len == 0 or all_nan:
+        freq_label = freq_use or "D"
+        message = (
+            "empty time axis"
+            if time_len == 0
+            else "all-NaN climate data"
+        )
+        message = (
+            f"{message} from climate loader (freq='{freq_label}'). "
+            "Month-start ('MS') or month-end ('ME') requests over short windows can yield no timestamps. "
+            "Use freq='D' for daily sampling or expand the date range."
+        )
+        if not allow_synth:
+            raise RuntimeError(message)
+
+        aoi = {
+            "min_lon": float(event.centroid_lon) - 0.05,
+            "max_lon": float(event.centroid_lon) + 0.05,
+            "min_lat": float(event.centroid_lat) - 0.05,
+            "max_lat": float(event.centroid_lat) + 0.05,
+        }
+        backend_error = message
+        if source == "prism":
+            ds, freq_use = prism_loader._build_synthetic_prism_cube(
+                [variable] if isinstance(variable, str) else list(variable),
+                start.isoformat(),
+                end.isoformat(),
+                aoi,
+                "D",
+                show_progress=verbose,
+            )
+        else:
+            ds, freq_use = gridmet_loader._build_synthetic_gridmet_cube(
+                [variable] if isinstance(variable, str) else list(variable),
+                start.isoformat(),
+                end.isoformat(),
+                aoi,
+                "D",
+                show_progress=verbose,
+            )
+        source = "synthetic"
+        ds = set_cube_provenance(
+            ds,
+            source=source,
+            is_synthetic=True,
+            freq=freq_use,
+            requested_start=start.isoformat(),
+            requested_end=end.isoformat(),
+            backend_error=backend_error,
         )
 
     target_var = variable if variable in ds.data_vars else next(iter(ds.data_vars))
