@@ -74,14 +74,14 @@ theme:
     - content.code.copy
   palette:
     - scheme: default
-      primary: custom
-      accent: custom
+      primary: white
+      accent: blue
       toggle:
         icon: material/brightness-4
         name: Switch to dark mode
     - scheme: slate
-      primary: custom
-      accent: custom
+      primary: black
+      accent: blue
       toggle:
         icon: material/brightness-7
         name: Switch to light mode
@@ -90,8 +90,7 @@ theme:
   custom_dir: docs/overrides
 
 extra_css:
-  - stylesheets/palette_v2.css
-  - stylesheets/layout_v2.css
+  - stylesheets/brand.css
   - assets/styles/landing_cards_v2.css
 
 plugins:

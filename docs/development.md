@@ -41,3 +41,6 @@ Tests live under `tests/` and rely on `pytest`. Documentation is built with MkDo
 - Run `mkdocs serve` locally to preview docs at http://127.0.0.1:8000.
 - Keep the navigation structure in `mkdocs.yml` aligned with the docs files.
 - Update the changelog for user-facing additions.
+- Brand colors live in `docs/stylesheets/brand.css`; adjust the CSS variables there to update the palette.
+- The homepage hero logo is wrapped with `.cd-hero-logo`; keep logo-specific styling scoped to that class.
+- Dark mode palette overrides are set under `[data-md-color-scheme="slate"]` in the same CSS file.
