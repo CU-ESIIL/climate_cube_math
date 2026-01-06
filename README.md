@@ -1,5 +1,9 @@
 # CubeDynamics
 
+<p align="center">
+  <img src="https://raw.githubusercontent.com/CU-ESIIL/climate_cube_math/main/docs/assets/img/cubedynamics_logo.png" alt="CubeDynamics" width="520">
+</p>
+
 ![Tests](https://github.com/CU-ESIIL/climate_cube_math/actions/workflows/tests.yml/badge.svg) ![Docs](https://github.com/CU-ESIIL/climate_cube_math/actions/workflows/pages.yml/badge.svg)
 
 CubeDynamics: a composable grammar of operations for spatiotemporal data cubes.

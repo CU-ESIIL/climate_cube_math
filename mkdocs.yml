@@ -76,6 +76,9 @@ theme:
     - scheme: default
       primary: "#1f3b74"
       accent: "#ff8c42"
+  logo: assets/img/cubedynamics_logo.png
+  favicon: assets/img/cubedynamics_logo.png
+  custom_dir: docs/overrides
 
 extra_css:
   - css/extra.css
