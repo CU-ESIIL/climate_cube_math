@@ -2,10 +2,9 @@
   <img src="assets/img/cubedynamics_logo.png" class="cd-logo" alt="CubeDynamics">
 </div>
 
-# CubeDynamics
-CubeDynamics: a composable grammar of operations for spatiotemporal data cubes.
+# CubeDynamics: a composable grammar of operations for spatiotemporal data cubes.
 
-CubeDynamics keeps spatial and temporal dimensions together so you can reason about **space, time, scale, and events** without breaking your workflow apart. Use it to build reproducible pipelines that stream or analyze cubes in memory.
+Keep spatial and temporal dimensions together so you can reason about **space, time, scale, and events** without breaking your workflow apart. Use it to build reproducible pipelines that stream or analyze cubes in memory.
 
 ## Jump into the docs
 <div class="ccm-card-grid">
