@@ -18,7 +18,9 @@ def stub_prism_backends(monkeypatch):
         coords = {
             "time": pd.date_range("2000-01-01", periods=1, freq="D"),
             "y": np.array([40.0, 40.1]),
-            "x": np.array([-105.2, -105.1]),
+            # Align with the AOI used in legacy positional tests to avoid
+            # creating an empty selection when cropping to the bbox.
+            "x": np.array([-105.35, -105.30]),
         }
         data_vars = {
             name: xr.DataArray(
