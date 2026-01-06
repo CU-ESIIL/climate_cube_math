@@ -72,7 +72,7 @@ print("Cube:", getattr(cube, "da", None).shape if hasattr(cube, "da") else type(
 ```
 
 !!! tip "Daily by default"
-    `fire_plot` now requests daily gridMET/PRISM data for event windows. Explicitly pass
+    `fire_plot` requests daily gridMET/PRISM data for event windows. Explicitly pass
     `freq="D"` to emphasize daily sampling or a different frequency if needed.
 
 ## What you get back
@@ -86,6 +86,18 @@ print("Cube:", getattr(cube, "da", None).shape if hasattr(cube, "da") else type(
 - `color_limits` (`tuple[float, float]`): min/max used for the Plotly colorbar.
 
 If `show_hist=True`, a Matplotlib histogram is also drawn (for interactive QA) but is not returned in the dictionary.
+
+## Daily frequency (freq) for GRIDMET / PRISM
+
+`freq` is forwarded to the GRIDMET/PRISM loaders and controls the cube's time index. For fire events, use daily sampling:
+
+```python
+results = v.fire_plot(..., freq="D", ...)
+```
+
+- **Default**: when `freq` is not supplied, `fire_plot` requests daily GRIDMET/PRISM data (`freq="D"`).
+- **Why daily?** Fire events are short; daily timestamps prevent gaps and align with FIRED daily perimeters. The same setting applies if you target PRISM variables.
+- **Gotcha**: `freq="MS"` (month start) can yield zero timestamps for short windows (e.g., 2018-07-17 to 2018-07-25), producing an empty cube. Keep `freq="D"` or widen the window when analyzing individual events.
 
 ## Parameters and tuning
 - **`climate_variable`**: use `"vpd"` (vapor pressure deficit, kPa) to match the prototype or `"tmmx"` (daily max temperature). Other gridMET variables pass through unchanged.

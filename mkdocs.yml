@@ -51,6 +51,7 @@ nav:
       - Reference: api/reference.md
   - Contributing / Development:
       - Contributing: dev/contributing.md
+      - CI and Testing: dev/ci_testing.md
       - Cube viewer invariants: dev/cube_viewer_invariants.md
       - Legacy reference: dev/legacy_reference.md
       - Public API & scope: project/public_api.md
