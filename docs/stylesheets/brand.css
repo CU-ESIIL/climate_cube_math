@@ -1,0 +1,209 @@
+/* CubeDynamics brand palette and component styling */
+
+:root {
+  /* Light tokens */
+  --cd-bg: #ffffff;
+  --cd-bg-soft: #f7f9fb;
+  --cd-border: #e2e8f0;
+  --cd-text: #1f2933;
+  --cd-text-muted: #4b5563;
+
+  --cd-teal: #1fa4a9;
+  --cd-teal-dark: #0e6f73;
+  --cd-green: #6dbe45;
+  --cd-green-light: #a7d84b;
+
+  --cd-cornflower: #6495ed;
+  --cd-cornflower-dark: #3b6edc;
+  --cd-cornflower-light: #afc7f6;
+
+  /* Map to mkdocs-material vars (light) */
+  --md-primary-fg-color: var(--cd-teal-dark);
+  --md-accent-fg-color: var(--cd-cornflower);
+  --md-typeset-a-color: var(--cd-cornflower);
+
+  --md-default-bg-color: var(--cd-bg);
+  --md-default-fg-color: var(--cd-text);
+  --md-default-fg-color--light: var(--cd-text-muted);
+  --md-default-fg-color--lighter: #7a8794;
+  --md-default-fg-color--lightest: #9aa7b3;
+
+  --md-code-bg-color: var(--cd-bg-soft);
+  --md-code-fg-color: var(--cd-text);
+}
+
+[data-md-color-scheme="slate"] {
+  --cd-bg: #081a1c;
+  --cd-bg-soft: #0b1f2a;
+  --cd-border: #19323a;
+  --cd-text: #e6eef3;
+  --cd-text-muted: #a9b7c0;
+
+  --md-primary-fg-color: var(--cd-green-light);
+  --md-accent-fg-color: var(--cd-cornflower);
+  --md-typeset-a-color: var(--cd-cornflower);
+
+  --md-default-bg-color: var(--cd-bg);
+  --md-default-fg-color: var(--cd-text);
+  --md-default-fg-color--light: var(--cd-text-muted);
+  --md-default-fg-color--lighter: #c4d0d8;
+  --md-default-fg-color--lightest: #dae3ea;
+
+  --md-code-bg-color: #071418;
+  --md-code-fg-color: var(--cd-text);
+}
+
+body {
+  background-color: var(--cd-bg);
+  color: var(--cd-text);
+}
+
+.md-header,
+.md-tabs {
+  background-color: var(--cd-bg);
+  box-shadow: none;
+  position: relative;
+}
+
+[data-md-color-scheme="slate"] .md-header,
+[data-md-color-scheme="slate"] .md-tabs {
+  background-color: var(--cd-bg-soft);
+}
+
+.md-header::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -2px;
+  height: 2px;
+  pointer-events: none;
+  background: linear-gradient(90deg, var(--cd-teal), var(--cd-green), var(--cd-green-light));
+}
+
+.md-header__title,
+.md-header__topic,
+.md-header__button,
+.md-tabs__link {
+  color: var(--cd-text);
+}
+
+[data-md-color-scheme="slate"] .md-header__title,
+[data-md-color-scheme="slate"] .md-header__topic,
+[data-md-color-scheme="slate"] .md-header__button,
+[data-md-color-scheme="slate"] .md-tabs__link {
+  color: var(--cd-text);
+}
+
+.md-typeset a {
+  color: var(--cd-cornflower);
+}
+
+.md-typeset a:hover {
+  color: var(--cd-cornflower-dark);
+}
+
+.md-typeset h1,
+.md-typeset h2 {
+  color: var(--cd-teal-dark);
+}
+
+[data-md-color-scheme="slate"] .md-typeset h1,
+[data-md-color-scheme="slate"] .md-typeset h2 {
+  color: var(--cd-green-light);
+}
+
+.md-nav__link--active {
+  color: var(--cd-teal-dark);
+  font-weight: 600;
+}
+
+.md-nav__link:hover {
+  color: var(--cd-cornflower-dark);
+}
+
+.md-button {
+  border-color: var(--cd-cornflower);
+  transition: transform 0.1s ease, box-shadow 0.1s ease, background-color 0.1s ease;
+}
+
+.md-button:hover {
+  border-color: var(--cd-cornflower-dark);
+}
+
+.md-button--primary {
+  background-color: var(--cd-teal);
+  border-color: var(--cd-teal);
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.md-button--primary:hover {
+  background-color: var(--cd-teal-dark);
+  border-color: var(--cd-teal-dark);
+}
+
+.md-typeset .admonition,
+.md-typeset details {
+  border-left: 4px solid var(--cd-teal);
+}
+
+.md-typeset .admonition-title {
+  color: var(--cd-teal-dark);
+}
+
+.md-typeset code {
+  background-color: rgba(31, 164, 169, 0.08);
+  border-radius: 4px;
+  padding: 0.05rem 0.35rem;
+}
+
+.md-typeset pre {
+  border: 1px solid var(--cd-border);
+  background-color: var(--cd-bg-soft);
+}
+
+[data-md-color-scheme="slate"] .md-typeset pre {
+  border-color: var(--cd-border);
+  background-color: #071418;
+}
+
+.md-content img:not(.cd-logo) {
+  border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+.cd-logo,
+.cd-hero-logo img {
+  background: transparent;
+  box-shadow: none;
+  border: 0;
+  border-radius: 0;
+}
+
+.cd-hero-logo,
+.cd-hero-logo * {
+  background: transparent !important;
+  box-shadow: none !important;
+  border: 0 !important;
+  outline: 0 !important;
+  filter: none !important;
+}
+
+.cd-hero-logo {
+  margin: 0.25rem 0 1rem;
+  padding: 0;
+  text-align: center;
+}
+
+.cd-hero-logo img {
+  display: block;
+  margin: 0 auto;
+  max-width: min(980px, 96vw);
+  height: auto;
+}
+
+.md-logo img {
+  height: 2.75rem;
+  width: auto;
+}
