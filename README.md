@@ -18,6 +18,10 @@ CubeDynamics is a Python framework for analyzing environmental data as **spatiot
 
 It is designed for scientists and data practitioners who want to reason explicitly about **space, time, scale, and events**—and to do so reproducibly and efficiently, even for large datasets.
 
+
+
+
+
 ---
 
 ## Why this project exists
