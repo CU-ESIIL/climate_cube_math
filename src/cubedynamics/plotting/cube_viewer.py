@@ -201,7 +201,7 @@ def _axis_annotation_html(
     parts: list[str] = []
     for entry in entries:
         parts.append(
-            "<div class=\"cube-axis-annotation\" "
+            "<div class=\"cube-axis-annotation cube-label\" "
             f"data-axis=\"{entry['axis']}\" data-role=\"{entry['role']}\" "
             f"data-x=\"{entry['x']:.2f}\" data-y=\"{entry['y']:.2f}\" data-z=\"{entry['z']:.2f}\" "
             f"style=\"transform: translate3d({entry['x']:.2f}px, {entry['y']:.2f}px, {entry['z']:.2f}px) "
