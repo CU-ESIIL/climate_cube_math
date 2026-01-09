@@ -73,7 +73,7 @@ def test_scale_fill_limits_and_legend(tmp_path):
     )
     assert "Legend Name" in html
     assert "cube-label" in html
-    assert "firebrick" in html  # axis color wired through CSS
+    assert "rgba(25, 25, 25, 0.9)" in html  # axis color wired through CSS
 
 
 def test_coordcube_injected_into_html(tmp_path):
