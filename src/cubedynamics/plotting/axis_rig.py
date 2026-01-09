@@ -161,6 +161,21 @@ def _time_tick_sequence(times: pd.DatetimeIndex, spec: AxisRigSpec) -> pd.Dateti
     return times
 
 
+def _subsample_tick_labels(
+    ticks: list[dict[str, Any]], label_max: int
+) -> list[dict[str, Any]]:
+    if label_max <= 0 or len(ticks) <= 2 or len(ticks) <= label_max:
+        return ticks
+    max_labels = max(2, label_max)
+    indices = np.linspace(0, len(ticks) - 1, num=max_labels, dtype=int)
+    keep = {int(idx) for idx in indices}
+    keep.update({0, len(ticks) - 1})
+    for idx, tick in enumerate(ticks):
+        if idx not in keep:
+            tick["label"] = ""
+    return ticks
+
+
 def _ticks_from_values(values: np.ndarray, count: int = 5) -> list[tuple[float, Any]]:
     if values.size == 0:
         return []
@@ -239,6 +254,7 @@ def build_axis_rig_meta(
             for tick in ticks:
                 frac = (tick - t0).total_seconds() / denom
                 tick_payload.append({"frac": float(frac), "label": _format_time_label(tick)})
+            tick_payload = _subsample_tick_labels(tick_payload, spec.time_label_max)
             return {
                 "name": axis_name,
                 "min_label": _format_time_label(t0),
@@ -256,6 +272,7 @@ def build_axis_rig_meta(
             {"frac": float((val - min_val) / denom), "label": _format_numeric(val)}
             for val in tick_vals
         ]
+        tick_payload = _subsample_tick_labels(tick_payload, spec.time_label_max)
         return {
             "name": axis_name,
             "min_label": _format_numeric(min_val),
@@ -283,12 +300,13 @@ def axis_rig_css(spec: AxisRigSpec) -> str:
       height: var(--cd-cube-size, var(--cube-size));
       transform-style: preserve-3d;
       pointer-events: none;
-      color: var(--cube-axis-color);
+      color: var(--cd-axis-color, rgba(25, 25, 25, 0.85));
       font-size: var(--cube-axis-font-size, 13px);
       letter-spacing: 0.04em;
       --cd-axis-out-x: 6px;
       --cd-axis-out-y: 8px;
-      --cd-axis-out-z: 6px;
+      --cd-axis-front-z: calc(var(--cd-cube-size, var(--cube-size)) / 2);
+      --cd-axis-out-z: calc(var(--cd-axis-front-z) + 6px);
       --cd-axis-line-w: 2px;
       --cd-axis-tick-w: 1px;
       --cd-axis-tick-l: 8px;
@@ -321,7 +339,7 @@ def axis_rig_css(spec: AxisRigSpec) -> str:
 
     .cd-axis-line {
       position: absolute;
-      background: var(--cube-axis-color);
+      background: var(--cd-axis-color, rgba(25, 25, 25, 0.85));
     }
 
     .cd-axis-ticks {
@@ -335,7 +353,7 @@ def axis_rig_css(spec: AxisRigSpec) -> str:
 
     .cd-axis-tick-mark {
       position: absolute;
-      background: var(--cube-axis-color);
+      background: var(--cd-axis-color, rgba(25, 25, 25, 0.85));
     }
 
     .cd-axis-label {
@@ -378,7 +396,7 @@ def axis_rig_css(spec: AxisRigSpec) -> str:
       width: var(--cd-axis-tick-w);
       height: var(--cd-axis-tick-l);
       left: 50%;
-      top: calc(-0.5 * var(--cd-axis-tick-l));
+      top: calc(-0.5 * var(--cd-axis-tick-l) + 0.5 * var(--cd-axis-line-w));
       transform: translateX(-50%);
     }
 
@@ -431,7 +449,7 @@ def axis_rig_css(spec: AxisRigSpec) -> str:
     .cd-axis-y .cd-axis-tick-mark {
       width: var(--cd-axis-tick-l);
       height: var(--cd-axis-tick-w);
-      left: calc(-1 * var(--cd-axis-tick-l));
+      left: calc(-1 * var(--cd-axis-tick-l) + 0.5 * var(--cd-axis-line-w));
       top: 50%;
       transform: translateY(-50%);
     }
@@ -487,7 +505,7 @@ def axis_rig_css(spec: AxisRigSpec) -> str:
       width: var(--cd-axis-tick-w);
       height: var(--cd-axis-tick-l);
       left: 50%;
-      top: calc(-0.5 * var(--cd-axis-tick-l));
+      top: calc(-0.5 * var(--cd-axis-tick-l) + 0.5 * var(--cd-axis-line-w));
       transform: translateX(-50%);
     }
 
@@ -532,7 +550,7 @@ def axis_rig_html(viewer_id: str, spec: AxisRigSpec) -> str:
     style = (
         f"--cd-axis-out-x: {spec.out_x_px}px;"
         f" --cd-axis-out-y: {spec.out_y_px}px;"
-        f" --cd-axis-out-z: {spec.out_z_px}px;"
+        f" --cd-axis-out-z: calc(var(--cd-axis-front-z) + {spec.out_z_px}px);"
         f" --cd-axis-line-w: {spec.axis_line_w_px}px;"
         f" --cd-axis-tick-w: {spec.tick_w_px}px;"
         f" --cd-axis-tick-l: {spec.tick_l_px}px;"
@@ -630,8 +648,14 @@ def axis_rig_js(viewer_id: str) -> str:
           const endMin = axisGroup.querySelector(".cd-axis-end--min .cd-axis-label-face");
           const endMax = axisGroup.querySelector(".cd-axis-end--max .cd-axis-label-face");
           const nameEl = axisGroup.querySelector(".cd-axis-name .cd-axis-label-face");
-          if (endMin) endMin.textContent = meta.min_label || "";
-          if (endMax) endMax.textContent = meta.max_label || "";
+          if (axisKey === "time") {{
+            // Time runs front (max/tN) to back (min/t0) along the depth edge.
+            if (endMin) endMin.textContent = meta.max_label || "";
+            if (endMax) endMax.textContent = meta.min_label || "";
+          }} else {{
+            if (endMin) endMin.textContent = meta.min_label || "";
+            if (endMax) endMax.textContent = meta.max_label || "";
+          }}
           if (nameEl) nameEl.textContent = meta.name || "";
 
           const ticksHost = axisGroup.querySelector(".cd-axis-ticks");
@@ -651,6 +675,7 @@ def axis_rig_js(viewer_id: str) -> str:
             if (axisKey === "y") {{
               tickEl.style.bottom = (tick.frac * 100) + "%";
             }} else if (axisKey === "time") {{
+              // Depth axis: frac=1 (newest) is front, so flip to map to left=0%.
               tickEl.style.left = ((1 - tick.frac) * 100) + "%";
             }} else {{
               tickEl.style.left = (tick.frac * 100) + "%";
